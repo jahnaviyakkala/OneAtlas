@@ -131,3 +131,31 @@ The pipeline has been thoroughly evaluated against a suite of complex, ambiguous
 * **Backend**: Python 3.12, FastAPI, CrewAI 1.14.5, Groq, LiteLLM
 * **Frontend**: React 19, Vite, TailwindCSS
 * **Deployment**: Hugging Face Spaces (Backend Docker) / Vercel (Frontend)
+
+---
+
+## 👥 Authors & Contributors
+
+* **Original Creator**: [Lokesh-916](https://github.com/Lokesh-916)
+* **Contributors**: 
+  - [jahnaviyakkala](https://github.com/jahnaviyakkala) - Development & Optimization
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.
+
+## 🤝 Contributing
+
+Contributions are welcome! Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines on how to contribute to this project.
+
+## 📚 Documentation
+
+- [Setup Guide](./SETUP.md) - Detailed installation and setup instructions
+- [Architecture Guide](./ARCHITECTURE.md) - System design and components
+- [Changelog](./CHANGELOG.md) - Project version history
+
+---
+
+**Built with ❤️ for reliable AI-native software generation.**
