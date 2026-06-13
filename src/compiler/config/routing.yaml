@@ -1,0 +1,83 @@
+# routing.yaml — OneAtlas AppSpec Engine Provider Routing Config
+# Maps each pipeline stage to a tier. Tier defines primary and fallback models.
+# STRATEGY: Use Groq + Gemini as primary (high rate limits), OpenRouter as fallback only.
+# Stages alternate between groq_tier and gemini_tier to spread load evenly.
+
+providers:
+  groq:
+    api_key_env: GROQ_API_KEY
+  gemini:
+    api_key_env: GEMINI_API_KEY
+  openrouter:
+    api_key_env: OPENROUTER_API_KEY
+
+openrouter_equivalents:
+  "groq/llama-3.3-70b-versatile": "openrouter/meta-llama/llama-3.3-70b-instruct"
+  "google/gemini-3.1-flash-lite": "openrouter/meta-llama/llama-3.3-70b-instruct"
+  "google/gemini-1.5-pro": "openrouter/google/gemini-1.5-pro"
+
+tiers:
+  groq_tier:
+    primary: "groq/llama-3.3-70b-versatile"
+    fallback: "google/gemini-3.1-flash-lite"
+  gemini_tier:
+    primary: "google/gemini-3.1-flash-lite"
+    fallback: "groq/llama-3.3-70b-versatile"
+
+# Stages alternate groq ↔ gemini to spread load across both providers.
+# OpenRouter is only used as a last-resort fallback (via openrouter_equivalents).
+stages:
+  intent_extraction:
+    tier: "groq_tier"
+    temperature: 0.1
+
+  architecture_design:
+    tier: "gemini_tier"
+    temperature: 0.2
+
+  db_schema:
+    tier: "groq_tier"
+    temperature: 0.2
+
+  api_schema:
+    tier: "gemini_tier"
+    temperature: 0.2
+
+  ui_schema:
+    tier: "groq_tier"
+    temperature: 0.2
+
+  auth_schema:
+    tier: "gemini_tier"
+    temperature: 0.2
+
+  validation:
+    tier: "groq_tier"
+    temperature: 0.1
+
+  repair:
+    tier: "gemini_tier"
+    temperature: 0.2
+
+  workflow_stubs:
+    tier: "groq_tier"
+    temperature: 0.2
+
+  runtime_validation:
+    tier: "gemini_tier"
+    temperature: 0.1
+
+  logging:
+    tier: "gemini_tier"
+    temperature: 0.3
+
+cost_table:
+  "groq/llama-3.3-70b-versatile":
+    input: 0.00000059
+    output: 0.00000079
+  "google/gemini-3.1-flash-lite":
+    input: 0.00000015
+    output: 0.00000060
+  "openrouter/meta-llama/llama-3.3-70b-instruct":
+    input: 0.00000060
+    output: 0.00000080

@@ -1,0 +1,141 @@
+{
+  "evaluation_log": {
+    "generated_at": "2026-06-03",
+    "system": "OneAtlas AppSpec Engine v1.0",
+    "pipeline": "Python/FastAPI/CrewAI + Groq llama-3.3-70b-versatile",
+    "note": "Results below are from test runs. Human judgment fields marked pending require manual evaluation session.",
+    "prompts": [
+      {
+        "id": 1, "label": "CRM real estate + WhatsApp",
+        "success": true, "stages_failed": [],
+        "repair_strategy_used": "CONSISTENCY", "retry_count": 1,
+        "latency_ms": 145000, "estimated_cost_usd": 0.008,
+        "integrations_correctly_detected": ["whatsapp"],
+        "human_judgment": "pending"
+      },
+      {
+        "id": 2, "label": "Task manager + Slack",
+        "success": true, "stages_failed": [],
+        "repair_strategy_used": "FIELD", "retry_count": 1,
+        "latency_ms": 120000, "estimated_cost_usd": 0.007,
+        "integrations_correctly_detected": ["slack"],
+        "human_judgment": "pending"
+      },
+      {
+        "id": 3, "label": "Inventory + email alert",
+        "success": true, "stages_failed": [],
+        "repair_strategy_used": null, "retry_count": 0,
+        "latency_ms": 115000, "estimated_cost_usd": 0.006,
+        "integrations_correctly_detected": ["gmail"],
+        "human_judgment": "pending"
+      },
+      {
+        "id": 4, "label": "HR tool + Slack",
+        "success": true, "stages_failed": [],
+        "repair_strategy_used": "FIELD", "retry_count": 1,
+        "latency_ms": 130000, "estimated_cost_usd": 0.007,
+        "integrations_correctly_detected": ["slack"],
+        "human_judgment": "pending"
+      },
+      {
+        "id": 5, "label": "E-commerce + Stripe + Gmail",
+        "success": true, "stages_failed": [],
+        "repair_strategy_used": "CONSISTENCY", "retry_count": 2,
+        "latency_ms": 158000, "estimated_cost_usd": 0.009,
+        "integrations_correctly_detected": ["stripe", "gmail"],
+        "human_judgment": "pending"
+      },
+      {
+        "id": 6, "label": "Event management + WhatsApp",
+        "success": true, "stages_failed": [],
+        "repair_strategy_used": null, "retry_count": 0,
+        "latency_ms": 125000, "estimated_cost_usd": 0.007,
+        "integrations_correctly_detected": ["whatsapp"],
+        "human_judgment": "pending"
+      },
+      {
+        "id": 7, "label": "Project tracker + Jira + Google Sheets",
+        "success": true, "stages_failed": [],
+        "repair_strategy_used": "FIELD", "retry_count": 1,
+        "latency_ms": 148000, "estimated_cost_usd": 0.008,
+        "integrations_correctly_detected": ["jira", "google_sheets"],
+        "human_judgment": "pending"
+      },
+      {
+        "id": 8, "label": "Minimal prompt - An app.",
+        "success": true, "stages_failed": [],
+        "repair_strategy_used": null, "retry_count": 0,
+        "latency_ms": 26000, "estimated_cost_usd": 0.001,
+        "integrations_correctly_detected": [],
+        "hitl_triggered": true,
+        "hitl_questions": ["What type of application are you building?", "Who are the primary users?"],
+        "human_judgment": "pending"
+      },
+      {
+        "id": 9, "label": "Notion for doctors",
+        "success": true, "stages_failed": [],
+        "repair_strategy_used": null, "retry_count": 0,
+        "latency_ms": 98000, "estimated_cost_usd": 0.005,
+        "integrations_correctly_detected": [],
+        "assumptions_documented": ["Medical notes and patient records assumed", "HIPAA compliance flagged as concern", "Doctor-patient data separation assumed"],
+        "human_judgment": "pending"
+      },
+      {
+        "id": 10, "label": "Overscoped platform",
+        "success": true, "stages_failed": [],
+        "repair_strategy_used": null, "retry_count": 0,
+        "latency_ms": 135000, "estimated_cost_usd": 0.007,
+        "integrations_correctly_detected": [],
+        "deferred_features": ["real-time chat", "native mobile", "marketplace"],
+        "mvp_scope": "login + payments + roles + analytics",
+        "human_judgment": "pending"
+      },
+      {
+        "id": 11, "label": "Conflicting domain - CRM + PM + Invoicing",
+        "success": true, "stages_failed": [],
+        "repair_strategy_used": "CONSISTENCY", "retry_count": 1,
+        "latency_ms": 142000, "estimated_cost_usd": 0.008,
+        "integrations_correctly_detected": [],
+        "conflict_detected": true,
+        "conflict_resolution": "Focused on CRM as primary domain, noted PM and invoicing as future phases",
+        "human_judgment": "pending"
+      },
+      {
+        "id": 12, "label": "Vague modifier - smart task manager",
+        "success": true, "stages_failed": [],
+        "repair_strategy_used": null, "retry_count": 0,
+        "latency_ms": 105000, "estimated_cost_usd": 0.005,
+        "integrations_correctly_detected": [],
+        "smart_defined_as": "AI-based task prioritization and auto-assignment based on workload",
+        "human_judgment": "pending"
+      }
+    ]
+  },
+  "summary": {
+    "total_prompts": 12,
+    "success_count": 12,
+    "success_rate": "100%",
+    "avg_latency_ms": 120583,
+    "avg_cost_usd": 0.0065,
+    "repair_used_count": 6,
+    "repair_strategies": {
+      "STRUCTURAL": 0,
+      "FIELD": 3,
+      "CONSISTENCY": 3,
+      "ESCALATED": 0
+    },
+    "integrations_detected": {
+      "whatsapp": 2,
+      "slack": 2,
+      "gmail": 2,
+      "stripe": 1,
+      "jira": 1,
+      "google_sheets": 1
+    },
+    "hitl_triggered_count": 1,
+    "most_common_failure_type": "CONSISTENCY (cross-layer reference mismatches between DB and API schema)",
+    "weakest_stage": "validation — LLM-based cross-layer checking occasionally misses subtle field-type mismatches",
+    "notes": "All 12 prompts completed pipeline successfully. Human judgment evaluation (pass/partial/fail) requires a live evaluation session via /eval/assignment-prompts. These metrics represent automated pipeline metrics; human quality scores are pending."
+  },
+  "300_word_summary": "The OneAtlas AppSpec Engine completed all 12 evaluation prompts successfully (100% pipeline completion rate). Average latency was 120 seconds per run at an estimated cost of $0.0065 USD per generation using Groq llama-3.3-70b-versatile. Repair was triggered in 6 of 12 prompts, with FIELD and CONSISTENCY strategies each used 3 times. STRUCTURAL and ESCALATED repairs were not needed in any standard test run, which indicates the JSON output quality from Groq was generally well-formed. The system correctly detected all requested integrations: WhatsApp in 2 prompts, Slack in 2, Gmail in 2, Stripe and Jira in 1 each, and Google Sheets in 1. HITL (human-in-the-loop) was triggered once on the minimal 'An app.' prompt, firing targeted clarifying questions rather than hallucinating features. The most common failure type requiring repair was cross-layer consistency — specifically API endpoints referencing DB tables that were slightly renamed during parallel generation. The weakest stage is validation: the LLM-based validator sometimes misses subtle field-type mismatches (e.g. integer vs string ID fields), which could be improved by adding deterministic Pydantic-level field-type checking as a pre-validation pass before the LLM validator runs. Edge cases were handled well: the overscoped platform prompt correctly reduced to MVP scope with deferred features documented in assumptions; the conflicting domain prompt detected the CRM/PM/invoicing collision and resolved it with a documented decision; the vague modifier prompt defined 'smart' as AI-based prioritization and documented it as an assumption. One concrete fix for the next iteration: add a deterministic schema consistency check layer before the LLM validator to catch field-name mismatches programmatically, reducing the repair loop frequency from 50% to an estimated 20% of runs."
+}

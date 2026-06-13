@@ -1,0 +1,262 @@
+[
+  {
+    "id": 1,
+    "category": "real",
+    "difficulty": "hard",
+    "label": "Multi-role CRM",
+    "prompt": "Build a CRM with login, contact management, deal pipeline with stages, role-based access for admins and sales reps, admin analytics dashboard, and a premium plan that unlocks advanced reporting and bulk export. Admins can manage all contacts, sales reps only see their own.",
+    "expected_behavior": "Full schema with role-gated data access at the DB query level, premium plan gating, analytics endpoints, and separate UI views per role",
+    "known_challenges": [
+      "Role-gated data filtering must appear in API schema not just auth",
+      "Premium gating must appear in both auth and business rules",
+      "Analytics endpoints must be admin-only enforced across all layers"
+    ]
+  },
+  {
+    "id": 2,
+    "category": "real",
+    "difficulty": "hard",
+    "label": "E-commerce with Stripe",
+    "prompt": "E-commerce platform with product catalog and variants (size, color), inventory tracking, shopping cart, checkout with Stripe, order history, seller dashboard for inventory management, buyer and seller roles, and an admin who can see all transactions and flag products.",
+    "expected_behavior": "Product variants as separate table, inventory decrement on checkout, Stripe webhook endpoint in API schema, three-role permissions matrix",
+    "known_challenges": [
+      "Product variants create a complex DB relation",
+      "Inventory must be transactional — race conditions are a design concern",
+      "Stripe webhook must appear as an API endpoint with its own schema"
+    ]
+  },
+  {
+    "id": 3,
+    "category": "real",
+    "difficulty": "hard",
+    "label": "Healthcare Appointments",
+    "prompt": "Healthcare appointment booking system with patient profiles, doctor availability calendars, appointment scheduling with conflict detection, automated reminders, prescription history visible only to the patient and their assigned doctor, admin oversight, and HIPAA-relevant data separation between patient records and operational data.",
+    "expected_behavior": "Strict data separation in DB schema, conflict detection logic in business rules, role-gated prescription access, reminder system as a background task endpoint",
+    "known_challenges": [
+      "HIPAA separation requires specific DB design decisions",
+      "Conflict detection must appear in API validation rules",
+      "Doctor-patient assignment must be enforced at the permission level"
+    ]
+  },
+  {
+    "id": 4,
+    "category": "real",
+    "difficulty": "medium",
+    "label": "SaaS with billing",
+    "prompt": "SaaS platform with team workspaces, member invites via email, role hierarchy (owner, admin, member, viewer), usage analytics per workspace, Stripe subscription billing with plan limits enforced at the API level, API key management for developers, and an audit log of all admin actions.",
+    "expected_behavior": "Plan limits as enforced API validation rules not just UI hints, audit log as append-only DB table, API key hashing in DB schema, invite flow as multi-step API",
+    "known_challenges": [
+      "Plan limits must appear in API validation_rules not just business_rules",
+      "API keys must be hashed — raw key only shown once",
+      "Audit log must be append-only (no update/delete endpoints)"
+    ]
+  },
+  {
+    "id": 5,
+    "category": "real",
+    "difficulty": "hard",
+    "label": "LMS with progress tracking",
+    "prompt": "Learning management system with course creation by instructors, lesson sequencing with prerequisites, student enrollment, quiz engine with auto-grading, progress tracking per student per course, certificate generation on completion, instructor analytics, and a free tier limited to 3 courses with premium unlimited.",
+    "expected_behavior": "Prerequisite enforcement in business rules, quiz auto-grading as API logic, certificate as generated artifact endpoint, progress as a dedicated junction table, premium gating on course count",
+    "known_challenges": [
+      "Lesson prerequisites create a DAG structure in DB",
+      "Quiz grading logic must be specified in business rules",
+      "Progress tracking requires a separate junction table with completion state"
+    ]
+  },
+  {
+    "id": 6,
+    "category": "real",
+    "difficulty": "medium",
+    "label": "Project management tool",
+    "prompt": "Project management tool with organizations, projects, boards, tasks with subtasks, assignees, due dates, priority levels, file attachments, comments with threading, activity feed per project, time tracking per task, and guest access with read-only permissions on specific projects.",
+    "expected_behavior": "Recursive subtask structure in DB, guest role with project-scoped permissions not global, activity feed as event-sourced append-only table, file attachments as URL references with metadata",
+    "known_challenges": [
+      "Subtasks require a self-referential FK in DB schema",
+      "Guest permissions are project-scoped not role-global",
+      "Activity feed should be event-sourced not a mutable log"
+    ]
+  },
+  {
+    "id": 7,
+    "category": "real",
+    "difficulty": "hard",
+    "label": "Real estate marketplace",
+    "prompt": "Real estate listing platform where agents post properties with photos, floor plans, and pricing history. Buyers can save listings, schedule viewings, and message agents. Admins verify agent accounts and can delist properties. Include a map-based search UI, advanced filters, and a recommendation engine placeholder that receives user behavior events.",
+    "expected_behavior": "Property as rich entity with versioned pricing, viewing as a scheduled event entity, messaging as a thread entity, recommendation as an event-ingestion API endpoint, map search as a geo-query API endpoint",
+    "known_challenges": [
+      "Pricing history requires versioning strategy in DB",
+      "Map search implies geo coordinates as indexed columns",
+      "Recommendation placeholder must still appear as a real API endpoint"
+    ]
+  },
+  {
+    "id": 8,
+    "category": "real",
+    "difficulty": "medium",
+    "label": "Restaurant management",
+    "prompt": "Restaurant management system with menu management by admins, table QR code ordering by customers, kitchen display system showing live order queue, order status tracking (received, preparing, ready, delivered), staff roles (admin, kitchen, waiter), daily sales reports, and integration with a third-party payment terminal via webhook.",
+    "expected_behavior": "Order as a state machine in business rules, kitchen display as a filtered real-time endpoint, payment webhook as an API endpoint, QR ordering as a public unauthenticated endpoint with session token",
+    "known_challenges": [
+      "Order state machine must be explicit in business rules",
+      "Kitchen display requires a role-filtered real-time data endpoint",
+      "QR ordering is unauthenticated — must be handled in auth schema"
+    ]
+  },
+  {
+    "id": 9,
+    "category": "real",
+    "difficulty": "hard",
+    "label": "Social platform with moderation",
+    "prompt": "Social platform with user profiles, posts (text, image, video), follows and followers, likes, nested comments, notifications, private messaging, content moderation queue for admins, automated flagging of posts above a report threshold, and creator monetization with a tipping system.",
+    "expected_behavior": "Nested comments as self-referential table, notification as event-driven entity, moderation queue as filtered admin endpoint, report threshold as a business rule, tip as a financial transaction entity with audit trail",
+    "known_challenges": [
+      "Nested comments depth must be capped in business rules",
+      "Automated flagging is a business rule with a threshold trigger",
+      "Tips require a financial transaction table separate from general activity"
+    ]
+  },
+  {
+    "id": 10,
+    "category": "real",
+    "difficulty": "hard",
+    "label": "HR platform",
+    "prompt": "HR platform with employee directory, department hierarchy, leave request and approval workflow with multi-level approvals, payroll summary (read-only, only HR and employee for own record), performance review cycles with peer feedback, org chart visualization, onboarding checklists for new hires, and document storage with access control per document type.",
+    "expected_behavior": "Department as tree structure in DB, leave approval as multi-step workflow entity, payroll as read-only restricted endpoint, peer feedback with anonymization option in business rules, document ACL as separate permission table",
+    "known_challenges": [
+      "Department hierarchy requires adjacency list or nested set in DB",
+      "Multi-level approval is a workflow — must appear as state machine",
+      "Document ACL is per-document not per-role — needs separate design"
+    ]
+  },
+  {
+    "id": 11,
+    "category": "edge",
+    "difficulty": "adversarial",
+    "label": "Empty intent",
+    "prompt": "Build an app.",
+    "expected_behavior": "HITL triggered immediately with targeted clarifying questions. System does not guess or hallucinate features. Pipeline pauses and waits.",
+    "known_challenges": [
+      "System must not proceed with assumptions alone on 3-word prompt",
+      "Questions must be specific and useful not generic"
+    ]
+  },
+  {
+    "id": 12,
+    "category": "edge",
+    "difficulty": "adversarial",
+    "label": "Domain collision",
+    "prompt": "Build something like Uber but also like Twitter and also like Notion but for hospitals and also has blockchain.",
+    "expected_behavior": "Conflict detection triggers. System identifies incompatible domain requirements. HITL asks user to prioritize or clarify the core use case. Does not try to build all four.",
+    "known_challenges": [
+      "Multiple domain collisions must each be identified separately",
+      "Blockchain must be noted as out-of-scope or flagged as assumption",
+      "System must not hallucinate a mega-schema trying to satisfy all"
+    ]
+  },
+  {
+    "id": 13,
+    "category": "edge",
+    "difficulty": "hard",
+    "label": "Self-contradictory auth",
+    "prompt": "Build a platform where all users are admins but regular users cannot access admin features, and admins are also guests with read-only access but can also edit everything.",
+    "expected_behavior": "Validator detects logical contradiction in role definitions. Repair agent cannot resolve without user input. HITL escalation with specific conflict description.",
+    "known_challenges": [
+      "Three contradictory role definitions for the same entity",
+      "Repair agent must not invent a resolution — must escalate",
+      "Conflict description in HITL must be precise and actionable"
+    ]
+  },
+  {
+    "id": 14,
+    "category": "edge",
+    "difficulty": "adversarial",
+    "label": "No persistence",
+    "prompt": "Build a CRM with contacts, deals, and user management but without a database. Everything should be in memory and reset on refresh.",
+    "expected_behavior": "System detects contradiction between CRM feature requirements and no-persistence constraint. Documents assumption or asks for clarification. If proceeding, DB schema is replaced with in-memory store spec.",
+    "known_challenges": [
+      "CRM fundamentally requires persistence — contradiction must be flagged",
+      "If user confirms no-DB, schema design must adapt not just remove tables",
+      "Validation must not fail on missing DB if user explicitly waived it"
+    ]
+  },
+  {
+    "id": 15,
+    "category": "edge",
+    "difficulty": "hard",
+    "label": "Extreme scope",
+    "prompt": "Build a platform that does everything Salesforce does, plus has AI recommendations, real-time collaboration like Figma, video conferencing like Zoom, a marketplace like Shopify, and automated compliance reporting for SOC2, HIPAA, and GDPR. Launch in two weeks.",
+    "expected_behavior": "Scope flagged as extreme. System either asks user to pick a core subset or generates schema for a realistic MVP and explicitly documents what was deferred. Timeline comment is noted but not factored into schema.",
+    "known_challenges": [
+      "Must not attempt to generate schema for all features — would hallucinate",
+      "Must explicitly list deferred features in assumptions",
+      "Timeline is irrelevant to schema but must not cause system to fail"
+    ]
+  },
+  {
+    "id": 16,
+    "category": "edge",
+    "difficulty": "adversarial",
+    "label": "Missing core flow",
+    "prompt": "E-commerce store with product listings, user accounts, and order history. No cart, no checkout, no payments.",
+    "expected_behavior": "System detects that orders cannot exist without a purchase flow. Flags missing checkout as a logical gap. HITL asks whether to add a minimal checkout or treat orders as manually created by admins.",
+    "known_challenges": [
+      "Order entity requires an originating transaction — gap must be detected",
+      "System must not silently add a checkout flow without flagging it",
+      "Resolution must come from user not from repair agent inventing a flow"
+    ]
+  },
+  {
+    "id": 17,
+    "category": "edge",
+    "difficulty": "hard",
+    "label": "Privacy contradiction",
+    "prompt": "Social network where all user data is completely private and never shared with anyone, but users can follow each other, see each other's posts in a feed, comment publicly, and appear in search results.",
+    "expected_behavior": "Validator detects contradiction between absolute privacy claim and public social features. Each conflicting feature is listed. HITL asks user to define what privacy actually means in their context.",
+    "known_challenges": [
+      "Privacy contradiction is subtle — system must detect it at feature level",
+      "Each public feature must be individually flagged not just summarized",
+      "Resolution requires user to redefine the privacy boundary"
+    ]
+  },
+  {
+    "id": 18,
+    "category": "edge",
+    "difficulty": "adversarial",
+    "label": "Reference to prior context",
+    "prompt": "Build what I described in my last message.",
+    "expected_behavior": "System detects zero context. HITL triggers immediately with a clear message that no prior prompt was found. Asks user to describe the application from scratch.",
+    "known_challenges": [
+      "System must not hallucinate a prior context",
+      "Error message must be clear and not blame the user",
+      "Pipeline must not advance past intent stage"
+    ]
+  },
+  {
+    "id": 19,
+    "category": "edge",
+    "difficulty": "hard",
+    "label": "Temporal inconsistency",
+    "prompt": "Build a booking platform where users can book appointments in the past, cancellations are not allowed after booking, rescheduling is always free and unlimited, but each user can only have one active booking at a time, except premium users who get unlimited bookings but also only one at a time.",
+    "expected_behavior": "Each business rule is extracted and validated for internal consistency. Past booking and single-active-booking rules are flagged as potentially contradictory with rescheduling. Premium rule contradiction detected and raised to HITL.",
+    "known_challenges": [
+      "Past booking is unusual — must be flagged not silently accepted",
+      "Premium rule contradicts itself — unlimited but also one at a time",
+      "Rescheduling free and unlimited contradicts no cancellations in spirit"
+    ]
+  },
+  {
+    "id": 20,
+    "category": "edge",
+    "difficulty": "adversarial",
+    "label": "Layered ambiguity",
+    "prompt": "A platform for professionals. It should have the usual features. Make it modern and scalable. Users should be able to do the things users normally do. Add monetization.",
+    "expected_behavior": "Every noun and verb is underspecified. HITL triggers with maximum clarification questions. System identifies at least 5 undefined terms and asks about each. Does not proceed with any assumptions without user confirmation.",
+    "known_challenges": [
+      "Professionals — what domain? Must ask.",
+      "Usual features — undefined. Must ask.",
+      "Monetization — subscription? per-use? ads? Must ask.",
+      "System must identify each ambiguity separately not lump them together"
+    ]
+  }
+]

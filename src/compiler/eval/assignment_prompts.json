@@ -1,0 +1,170 @@
+[
+  {
+    "id": 1,
+    "category": "real",
+    "difficulty": "hard",
+    "label": "CRM real estate + WhatsApp",
+    "prompt": "Build a CRM for a real estate agency. Agents manage leads, properties, and deals. Admin sees analytics. WhatsApp notifications when a deal closes.",
+    "expected_behavior": "Full schema with role-gated data access, WhatsApp workflow stub triggered on deal status_changed, analytics endpoints admin-only, integration hook for whatsapp.send_template_message",
+    "known_challenges": [
+      "Role-gated data filtering must appear in API schema not just auth",
+      "WhatsApp stub must trigger on deal.status == closed",
+      "Analytics endpoints must be admin-only across all layers"
+    ],
+    "integrations_expected": ["whatsapp"]
+  },
+  {
+    "id": 2,
+    "category": "real",
+    "difficulty": "medium",
+    "label": "Task manager + Slack",
+    "prompt": "Task manager for an engineering team. Tasks have due dates, assignees, priorities, and status. Team lead gets a Slack message when a task is overdue.",
+    "expected_behavior": "Task entity with due_date, assignee, priority columns. Slack workflow stub triggered when task status_changed with condition due_date < now(). Integration hook for slack.send_message.",
+    "known_challenges": [
+      "Overdue condition must appear in workflow stub trigger.condition",
+      "Slack integration hook must have channel and text as required_inputs",
+      "Team lead role must be defined in auth schema"
+    ],
+    "integrations_expected": ["slack"]
+  },
+  {
+    "id": 3,
+    "category": "real",
+    "difficulty": "medium",
+    "label": "Inventory + email alert",
+    "prompt": "Inventory system for a warehouse. Products, stock movements, suppliers. Low stock triggers an email alert.",
+    "expected_behavior": "Product entity with stock_level column. Gmail workflow stub triggered on stock_level updated with condition stock_level < threshold. Integration hook for gmail.send_email.",
+    "known_challenges": [
+      "Low stock condition must appear in workflow stub",
+      "Email integration hook must reference gmail.send_email action",
+      "Stock movement as separate entity with product FK"
+    ],
+    "integrations_expected": ["gmail"]
+  },
+  {
+    "id": 4,
+    "category": "real",
+    "difficulty": "medium",
+    "label": "HR tool + Slack",
+    "prompt": "HR tool for a 50-person company. Track employees, leave requests, and performance reviews. Notify manager on Slack when leave is approved.",
+    "expected_behavior": "LeaveRequest entity with status field. Slack workflow stub triggered on leave status_changed with condition status == approved. Manager role in auth schema.",
+    "known_challenges": [
+      "Leave approval workflow must appear as workflow stub not just business rule",
+      "Manager notification must map leave.manager_id to Slack user_id",
+      "Performance review as separate entity"
+    ],
+    "integrations_expected": ["slack"]
+  },
+  {
+    "id": 5,
+    "category": "real",
+    "difficulty": "hard",
+    "label": "E-commerce + Stripe + Gmail",
+    "prompt": "E-commerce backend. Products, orders, customers, payments via Stripe. Order confirmation sent via Gmail.",
+    "expected_behavior": "Stripe workflow stub on User created, Gmail stub on Order created. Two integration hooks. Stripe customer_id stored on user table. tenant_id on all entities.",
+    "known_challenges": [
+      "Two separate workflow stubs for two integrations",
+      "Stripe create_customer triggered on user registration",
+      "Gmail send_email triggered on order creation"
+    ],
+    "integrations_expected": ["stripe", "gmail"]
+  },
+  {
+    "id": 6,
+    "category": "real",
+    "difficulty": "hard",
+    "label": "Event management + WhatsApp",
+    "prompt": "Event management platform. Organizers create events, attendees register, QR check-in at the door. Confirmation via WhatsApp.",
+    "expected_behavior": "Event and Registration entities. WhatsApp stub triggered on Registration created. QR check-in as unauthenticated endpoint. Integration hook for whatsapp.send_template_message.",
+    "known_challenges": [
+      "QR check-in must be unauthenticated in auth schema",
+      "WhatsApp stub must map attendee.phone to to field",
+      "Registration as junction entity between User and Event"
+    ],
+    "integrations_expected": ["whatsapp"]
+  },
+  {
+    "id": 7,
+    "category": "real",
+    "difficulty": "hard",
+    "label": "Project tracker + Jira + Google Sheets",
+    "prompt": "Project tracker. Projects, milestones, tasks. Sync tasks to Jira. Update a Google Sheet with weekly progress.",
+    "expected_behavior": "Two workflow stubs: Jira on task created, Google Sheets on task updated. Both integrations stubbed (is_stub=true) but hooks and stubs must be present and valid.",
+    "known_challenges": [
+      "Jira and google_sheets are stubbed integrations — hooks still valid",
+      "Two separate integration hooks with correct required_inputs",
+      "Milestone as parent entity of Task with FK"
+    ],
+    "integrations_expected": ["jira", "google_sheets"]
+  },
+  {
+    "id": 8,
+    "category": "edge",
+    "difficulty": "adversarial",
+    "label": "Minimal prompt",
+    "prompt": "An app.",
+    "expected_behavior": "HITL triggered immediately with targeted clarifying questions. System does not crash or hallucinate features. Pipeline completes or pauses gracefully.",
+    "known_challenges": [
+      "Must not crash on 3-word prompt",
+      "HITL must fire with specific questions not generic ones",
+      "No features assumed without user confirmation"
+    ],
+    "integrations_expected": []
+  },
+  {
+    "id": 9,
+    "category": "edge",
+    "difficulty": "hard",
+    "label": "Notion for doctors",
+    "prompt": "Build something like Notion for doctors.",
+    "expected_behavior": "Ambiguous domain detected. System surfaces assumptions (medical notes, patient records, appointments?) or asks one clarifying question. Does not try to build generic Notion.",
+    "known_challenges": [
+      "Domain is ambiguous - Notion-like but for medical use",
+      "Must surface at least 2 assumptions about medical features",
+      "HIPAA or data sensitivity should be noted in assumptions"
+    ],
+    "integrations_expected": []
+  },
+  {
+    "id": 10,
+    "category": "edge",
+    "difficulty": "adversarial",
+    "label": "Overscoped platform",
+    "prompt": "A platform with login, payments, roles, real-time chat, file uploads, native mobile, analytics, and a marketplace.",
+    "expected_behavior": "Scope flagged as extreme. System generates schema for realistic MVP subset and explicitly documents what was deferred. Does not attempt to build all features.",
+    "known_challenges": [
+      "Must not generate schema for all 8 features",
+      "Deferred features must appear in assumptions",
+      "MVP scope decision must be documented"
+    ],
+    "integrations_expected": []
+  },
+  {
+    "id": 11,
+    "category": "edge",
+    "difficulty": "hard",
+    "label": "Conflicting domain",
+    "prompt": "A CRM but also a project manager but also an invoicing tool.",
+    "expected_behavior": "Domain conflict detected. System identifies incompatible primary entities (Contact vs Task vs Invoice). Documents decision to focus on one domain or asks user to choose.",
+    "known_challenges": [
+      "Three conflicting entity domains",
+      "System must pick one or ask not guess all three",
+      "Conflict must appear in validation_report.conflicts"
+    ],
+    "integrations_expected": []
+  },
+  {
+    "id": 12,
+    "category": "edge",
+    "difficulty": "adversarial",
+    "label": "Vague modifier",
+    "prompt": "Task manager, but make it smart.",
+    "expected_behavior": "Vague modifier smart is undefined. System documents what smart means as an assumption (AI prioritization? auto-assignment? recommendations?) rather than inventing features.",
+    "known_challenges": [
+      "smart is undefined and must not be silently ignored",
+      "At least one assumption must document the smart interpretation",
+      "Core task manager features must still be generated"
+    ],
+    "integrations_expected": []
+  }
+]

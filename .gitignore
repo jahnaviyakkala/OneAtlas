@@ -1,0 +1,70 @@
+.env
+.env.local
+__pycache__/
+.DS_Store
+*.pyc
+*.pyo
+.venv/
+venv/
+dist/
+build/
+*.egg-info/
+.uv/
+report.md
+
+# Kiro / AI assistant files — do not commit
+AGENTS.md
+
+# Logs
+backend/logs/
+*.log
+
+# Eval runtime data
+src/compiler/eval/eval_results.json
+
+# Frontend build artifacts
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/dist/
+
+# Runtime generated — do not commit
+backend/logs/
+src/compiler/eval/eval_results.json
+frontend/dist/
+
+# Assignment PDF — internal document
+*.pdf
+
+# Root-level test scripts (one-off, not part of test suite)
+test_*.py
+# Temp build/test scripts
+*.cmd
+patch_*.py
+test_feature_*.py
+run_patch*.py
+*_stage.py
+*_out.txt
+*_err.txt
+check*.py
+fix_*.py
+squash_*.py
+cleanup_*.py
+atom*.py
+
+verify.txt
+
+cleangh.txt
+cleangh.cmd
+
+last.txt
+last.cmd
+st.txt
+st.cmd
+
+x.txt
+x.cmd
+
+# Single-char temp output files
+?.txt
+?.cmd

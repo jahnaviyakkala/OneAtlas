@@ -1,0 +1,3002 @@
+{
+  "session_id": "767d22fa-572b-4eb0-a0a5-c5191c9806ed",
+  "prompt": "Task manager for an engineering team. Tasks have due dates, assignees, priorities, and status. Team lead gets a Slack message when a task is overdue.",
+  "original_prompt": "Task manager for an engineering team. Tasks have due dates, assignees, priorities, and status. Team lead gets a Slack message when a task is overdue.",
+  "modification_history": [],
+  "intent": {
+    "app_name": "Engineering Team Task Manager",
+    "app_type": "project_management",
+    "features": [
+      "Task Management",
+      "Due Date Tracking",
+      "Assignee Management",
+      "Priority Management",
+      "Status Management",
+      "Overdue Task Notification"
+    ],
+    "entities": [
+      "Task",
+      "Team Lead",
+      "Assignee"
+    ],
+    "user_roles": [
+      "Team Lead",
+      "Assignee"
+    ],
+    "integrations": [
+      "Slack"
+    ],
+    "premium_requirements": null,
+    "analytics_requirements": null,
+    "confidence": 0.8,
+    "assumptions": [
+      "The application will have a web-based interface",
+      "The application will use a database to store task information",
+      "The team lead will receive a Slack message when a task is overdue"
+    ],
+    "clarifications_received": [
+      "task management ",
+      "engineers in a startup across various domains",
+      "yes"
+    ]
+  },
+  "architecture": {
+    "entities": [
+      {
+        "name": "Task",
+        "attributes": [
+          "id",
+          "name",
+          "description",
+          "due_date",
+          "priority",
+          "status",
+          "assignee_id"
+        ],
+        "description": "Represents a task in the task manager"
+      },
+      {
+        "name": "Team Lead",
+        "attributes": [
+          "id",
+          "name",
+          "email"
+        ],
+        "description": "Represents the team lead"
+      },
+      {
+        "name": "Assignee",
+        "attributes": [
+          "id",
+          "name",
+          "email"
+        ],
+        "description": "Represents an assignee"
+      }
+    ],
+    "relations": [
+      {
+        "from_entity": "Task",
+        "to_entity": "Assignee",
+        "cardinality": "one-to-one",
+        "description": "A task is assigned to one assignee"
+      },
+      {
+        "from_entity": "Task",
+        "to_entity": "Team Lead",
+        "cardinality": "one-to-one",
+        "description": "A team lead is notified about a task"
+      }
+    ],
+    "page_flows": [
+      {
+        "name": "Task Management",
+        "pages": [
+          "task_list",
+          "task_details",
+          "task_create",
+          "task_edit"
+        ],
+        "transitions": [
+          {
+            "from": "task_list",
+            "to": "task_details",
+            "event": "task_selected"
+          },
+          {
+            "from": "task_list",
+            "to": "task_create",
+            "event": "create_task"
+          },
+          {
+            "from": "task_details",
+            "to": "task_edit",
+            "event": "edit_task"
+          }
+        ]
+      }
+    ],
+    "role_hierarchy": {
+      "Team Lead": {
+        "parent": null,
+        "level": 1
+      },
+      "Assignee": {
+        "parent": "Team Lead",
+        "level": 2
+      }
+    },
+    "business_rules": [
+      {
+        "name": "Overdue Task Notification",
+        "description": "Send a Slack message to the team lead when a task is overdue",
+        "affected_entities": [
+          "Task",
+          "Team Lead"
+        ]
+      }
+    ],
+    "data_flows": [
+      {
+        "name": "Task Creation",
+        "source": "Web Interface",
+        "destination": "Database",
+        "description": "Create a new task in the database"
+      },
+      {
+        "name": "Task Update",
+        "source": "Web Interface",
+        "destination": "Database",
+        "description": "Update an existing task in the database"
+      },
+      {
+        "name": "Overdue Task Notification",
+        "source": "Database",
+        "destination": "Slack",
+        "description": "Send a Slack message to the team lead when a task is overdue"
+      }
+    ]
+  },
+  "db_schema": {
+    "tables": [
+      {
+        "name": "Task",
+        "columns": [
+          {
+            "name": "id",
+            "data_type": "UUID",
+            "nullable": false,
+            "default_value": "uuid_generate_v4()",
+            "constraints": [
+              "PRIMARY KEY"
+            ]
+          },
+          {
+            "name": "name",
+            "data_type": "VARCHAR(255)",
+            "nullable": false,
+            "default_value": null,
+            "constraints": []
+          },
+          {
+            "name": "description",
+            "data_type": "TEXT",
+            "nullable": true,
+            "default_value": null,
+            "constraints": []
+          },
+          {
+            "name": "due_date",
+            "data_type": "DATE",
+            "nullable": true,
+            "default_value": null,
+            "constraints": []
+          },
+          {
+            "name": "priority",
+            "data_type": "VARCHAR(255)",
+            "nullable": true,
+            "default_value": null,
+            "constraints": []
+          },
+          {
+            "name": "status",
+            "data_type": "VARCHAR(255)",
+            "nullable": true,
+            "default_value": null,
+            "constraints": []
+          },
+          {
+            "name": "assignee_id",
+            "data_type": "UUID",
+            "nullable": true,
+            "default_value": null,
+            "constraints": []
+          },
+          {
+            "name": "team_lead_id",
+            "data_type": "UUID",
+            "nullable": true,
+            "default_value": null,
+            "constraints": []
+          },
+          {
+            "name": "created_at",
+            "data_type": "TIMESTAMP",
+            "nullable": false,
+            "default_value": "NOW()",
+            "constraints": []
+          },
+          {
+            "name": "updated_at",
+            "data_type": "TIMESTAMP",
+            "nullable": false,
+            "default_value": "NOW()",
+            "constraints": []
+          },
+          {
+            "name": "soft_deleted_at",
+            "data_type": "TIMESTAMP",
+            "nullable": true,
+            "default_value": null,
+            "constraints": []
+          }
+        ],
+        "primary_key": "id",
+        "foreign_keys": [
+          {
+            "column": "assignee_id",
+            "references_table": "Assignee",
+            "references_column": "id",
+            "on_delete": "SET NULL"
+          },
+          {
+            "column": "team_lead_id",
+            "references_table": "Team Lead",
+            "references_column": "id",
+            "on_delete": "SET NULL"
+          }
+        ],
+        "indexes": [
+          {
+            "name": "idx_assignee_id",
+            "columns": [
+              "assignee_id"
+            ],
+            "unique": false
+          },
+          {
+            "name": "idx_team_lead_id",
+            "columns": [
+              "team_lead_id"
+            ],
+            "unique": false
+          },
+          {
+            "name": "idx_due_date",
+            "columns": [
+              "due_date"
+            ],
+            "unique": false
+          }
+        ],
+        "relations": [
+          {
+            "table": "Assignee",
+            "type": "one-to-one"
+          },
+          {
+            "table": "Team Lead",
+            "type": "one-to-one"
+          }
+        ]
+      },
+      {
+        "name": "Team Lead",
+        "columns": [
+          {
+            "name": "id",
+            "data_type": "UUID",
+            "nullable": false,
+            "default_value": "uuid_generate_v4()",
+            "constraints": [
+              "PRIMARY KEY"
+            ]
+          },
+          {
+            "name": "name",
+            "data_type": "VARCHAR(255)",
+            "nullable": false,
+            "default_value": null,
+            "constraints": []
+          },
+          {
+            "name": "email",
+            "data_type": "VARCHAR(255)",
+            "nullable": false,
+            "default_value": null,
+            "constraints": []
+          },
+          {
+            "name": "created_at",
+            "data_type": "TIMESTAMP",
+            "nullable": false,
+            "default_value": "NOW()",
+            "constraints": []
+          },
+          {
+            "name": "updated_at",
+            "data_type": "TIMESTAMP",
+            "nullable": false,
+            "default_value": "NOW()",
+            "constraints": []
+          }
+        ],
+        "primary_key": "id",
+        "foreign_keys": [],
+        "indexes": [
+          {
+            "name": "idx_email",
+            "columns": [
+              "email"
+            ],
+            "unique": true
+          }
+        ],
+        "relations": []
+      },
+      {
+        "name": "Assignee",
+        "columns": [
+          {
+            "name": "id",
+            "data_type": "UUID",
+            "nullable": false,
+            "default_value": "uuid_generate_v4()",
+            "constraints": [
+              "PRIMARY KEY"
+            ]
+          },
+          {
+            "name": "name",
+            "data_type": "VARCHAR(255)",
+            "nullable": false,
+            "default_value": null,
+            "constraints": []
+          },
+          {
+            "name": "email",
+            "data_type": "VARCHAR(255)",
+            "nullable": false,
+            "default_value": null,
+            "constraints": []
+          },
+          {
+            "name": "created_at",
+            "data_type": "TIMESTAMP",
+            "nullable": false,
+            "default_value": "NOW()",
+            "constraints": []
+          },
+          {
+            "name": "updated_at",
+            "data_type": "TIMESTAMP",
+            "nullable": false,
+            "default_value": "NOW()",
+            "constraints": []
+          }
+        ],
+        "primary_key": "id",
+        "foreign_keys": [],
+        "indexes": [
+          {
+            "name": "idx_email",
+            "columns": [
+              "email"
+            ],
+            "unique": true
+          }
+        ],
+        "relations": []
+      }
+    ]
+  },
+  "api_schema": {
+    "endpoints": [
+      {
+        "method": "GET",
+        "path": "/tasks",
+        "request_body": null,
+        "response_body": {
+          "id": {
+            "type": "UUID"
+          },
+          "name": {
+            "type": "VARCHAR(255)"
+          },
+          "due_date": {
+            "type": "DATE"
+          },
+          "priority": {
+            "type": "VARCHAR(255)"
+          },
+          "status": {
+            "type": "VARCHAR(255)"
+          },
+          "assignee_id": {
+            "type": "UUID"
+          },
+          "team_lead_id": {
+            "type": "UUID"
+          },
+          "created_at": {
+            "type": "TIMESTAMP"
+          },
+          "updated_at": {
+            "type": "TIMESTAMP"
+          }
+        },
+        "auth_required": true,
+        "required_role": "Assignee",
+        "validation_rules": []
+      },
+      {
+        "method": "GET",
+        "path": "/tasks/{id}",
+        "request_body": null,
+        "response_body": {
+          "id": {
+            "type": "UUID"
+          },
+          "name": {
+            "type": "VARCHAR(255)"
+          },
+          "due_date": {
+            "type": "DATE"
+          },
+          "priority": {
+            "type": "VARCHAR(255)"
+          },
+          "status": {
+            "type": "VARCHAR(255)"
+          },
+          "assignee_id": {
+            "type": "UUID"
+          },
+          "team_lead_id": {
+            "type": "UUID"
+          },
+          "created_at": {
+            "type": "TIMESTAMP"
+          },
+          "updated_at": {
+            "type": "TIMESTAMP"
+          }
+        },
+        "auth_required": true,
+        "required_role": "Assignee",
+        "validation_rules": []
+      },
+      {
+        "method": "POST",
+        "path": "/tasks",
+        "request_body": {
+          "name": {
+            "type": "VARCHAR(255)"
+          },
+          "due_date": {
+            "type": "DATE"
+          },
+          "priority": {
+            "type": "VARCHAR(255)"
+          },
+          "status": {
+            "type": "VARCHAR(255)"
+          },
+          "assignee_id": {
+            "type": "UUID"
+          },
+          "team_lead_id": {
+            "type": "UUID"
+          }
+        },
+        "response_body": {
+          "id": {
+            "type": "UUID"
+          },
+          "name": {
+            "type": "VARCHAR(255)"
+          },
+          "due_date": {
+            "type": "DATE"
+          },
+          "priority": {
+            "type": "VARCHAR(255)"
+          },
+          "status": {
+            "type": "VARCHAR(255)"
+          },
+          "assignee_id": {
+            "type": "UUID"
+          },
+          "team_lead_id": {
+            "type": "UUID"
+          },
+          "created_at": {
+            "type": "TIMESTAMP"
+          },
+          "updated_at": {
+            "type": "TIMESTAMP"
+          }
+        },
+        "auth_required": true,
+        "required_role": "Assignee",
+        "validation_rules": [
+          "name is required",
+          "assignee_id is required",
+          "team_lead_id is required"
+        ]
+      },
+      {
+        "method": "PUT",
+        "path": "/tasks/{id}",
+        "request_body": {
+          "name": {
+            "type": "VARCHAR(255)"
+          },
+          "due_date": {
+            "type": "DATE"
+          },
+          "priority": {
+            "type": "VARCHAR(255)"
+          },
+          "status": {
+            "type": "VARCHAR(255)"
+          },
+          "assignee_id": {
+            "type": "UUID"
+          },
+          "team_lead_id": {
+            "type": "UUID"
+          }
+        },
+        "response_body": {
+          "id": {
+            "type": "UUID"
+          },
+          "name": {
+            "type": "VARCHAR(255)"
+          },
+          "due_date": {
+            "type": "DATE"
+          },
+          "priority": {
+            "type": "VARCHAR(255)"
+          },
+          "status": {
+            "type": "VARCHAR(255)"
+          },
+          "assignee_id": {
+            "type": "UUID"
+          },
+          "team_lead_id": {
+            "type": "UUID"
+          },
+          "created_at": {
+            "type": "TIMESTAMP"
+          },
+          "updated_at": {
+            "type": "TIMESTAMP"
+          }
+        },
+        "auth_required": true,
+        "required_role": "Assignee",
+        "validation_rules": [
+          "name is required",
+          "assignee_id is required",
+          "team_lead_id is required"
+        ]
+      },
+      {
+        "method": "DELETE",
+        "path": "/tasks/{id}",
+        "request_body": null,
+        "response_body": {
+          "id": {
+            "type": "UUID"
+          },
+          "name": {
+            "type": "VARCHAR(255)"
+          },
+          "due_date": {
+            "type": "DATE"
+          },
+          "priority": {
+            "type": "VARCHAR(255)"
+          },
+          "status": {
+            "type": "VARCHAR(255)"
+          },
+          "assignee_id": {
+            "type": "UUID"
+          },
+          "team_lead_id": {
+            "type": "UUID"
+          },
+          "created_at": {
+            "type": "TIMESTAMP"
+          },
+          "updated_at": {
+            "type": "TIMESTAMP"
+          }
+        },
+        "auth_required": true,
+        "required_role": "Assignee",
+        "validation_rules": []
+      },
+      {
+        "method": "GET",
+        "path": "/team-leads",
+        "request_body": null,
+        "response_body": {
+          "id": {
+            "type": "UUID"
+          },
+          "name": {
+            "type": "VARCHAR(255)"
+          },
+          "email": {
+            "type": "VARCHAR(255)"
+          },
+          "created_at": {
+            "type": "TIMESTAMP"
+          },
+          "updated_at": {
+            "type": "TIMESTAMP"
+          }
+        },
+        "auth_required": true,
+        "required_role": "Team Lead",
+        "validation_rules": []
+      },
+      {
+        "method": "GET",
+        "path": "/team-leads/{id}",
+        "request_body": null,
+        "response_body": {
+          "id": {
+            "type": "UUID"
+          },
+          "name": {
+            "type": "VARCHAR(255)"
+          },
+          "email": {
+            "type": "VARCHAR(255)"
+          },
+          "created_at": {
+            "type": "TIMESTAMP"
+          },
+          "updated_at": {
+            "type": "TIMESTAMP"
+          }
+        },
+        "auth_required": true,
+        "required_role": "Team Lead",
+        "validation_rules": []
+      },
+      {
+        "method": "POST",
+        "path": "/team-leads",
+        "request_body": {
+          "name": {
+            "type": "VARCHAR(255)"
+          },
+          "email": {
+            "type": "VARCHAR(255)"
+          }
+        },
+        "response_body": {
+          "id": {
+            "type": "UUID"
+          },
+          "name": {
+            "type": "VARCHAR(255)"
+          },
+          "email": {
+            "type": "VARCHAR(255)"
+          },
+          "created_at": {
+            "type": "TIMESTAMP"
+          },
+          "updated_at": {
+            "type": "TIMESTAMP"
+          }
+        },
+        "auth_required": true,
+        "required_role": "Team Lead",
+        "validation_rules": [
+          "name is required",
+          "email is required"
+        ]
+      },
+      {
+        "method": "PUT",
+        "path": "/team-leads/{id}",
+        "request_body": {
+          "name": {
+            "type": "VARCHAR(255)"
+          },
+          "email": {
+            "type": "VARCHAR(255)"
+          }
+        },
+        "response_body": {
+          "id": {
+            "type": "UUID"
+          },
+          "name": {
+            "type": "VARCHAR(255)"
+          },
+          "email": {
+            "type": "VARCHAR(255)"
+          },
+          "created_at": {
+            "type": "TIMESTAMP"
+          },
+          "updated_at": {
+            "type": "TIMESTAMP"
+          }
+        },
+        "auth_required": true,
+        "required_role": "Team Lead",
+        "validation_rules": [
+          "name is required",
+          "email is required"
+        ]
+      },
+      {
+        "method": "DELETE",
+        "path": "/team-leads/{id}",
+        "request_body": null,
+        "response_body": {
+          "id": {
+            "type": "UUID"
+          },
+          "name": {
+            "type": "VARCHAR(255)"
+          },
+          "email": {
+            "type": "VARCHAR(255)"
+          },
+          "created_at": {
+            "type": "TIMESTAMP"
+          },
+          "updated_at": {
+            "type": "TIMESTAMP"
+          }
+        },
+        "auth_required": true,
+        "required_role": "Team Lead",
+        "validation_rules": []
+      },
+      {
+        "method": "GET",
+        "path": "/assignees",
+        "request_body": null,
+        "response_body": {
+          "id": {
+            "type": "UUID"
+          },
+          "name": {
+            "type": "VARCHAR(255)"
+          },
+          "email": {
+            "type": "VARCHAR(255)"
+          },
+          "created_at": {
+            "type": "TIMESTAMP"
+          },
+          "updated_at": {
+            "type": "TIMESTAMP"
+          }
+        },
+        "auth_required": true,
+        "required_role": "Assignee",
+        "validation_rules": []
+      },
+      {
+        "method": "GET",
+        "path": "/assignees/{id}",
+        "request_body": null,
+        "response_body": {
+          "id": {
+            "type": "UUID"
+          },
+          "name": {
+            "type": "VARCHAR(255)"
+          },
+          "email": {
+            "type": "VARCHAR(255)"
+          },
+          "created_at": {
+            "type": "TIMESTAMP"
+          },
+          "updated_at": {
+            "type": "TIMESTAMP"
+          }
+        },
+        "auth_required": true,
+        "required_role": "Assignee",
+        "validation_rules": []
+      },
+      {
+        "method": "POST",
+        "path": "/assignees",
+        "request_body": {
+          "name": {
+            "type": "VARCHAR(255)"
+          },
+          "email": {
+            "type": "VARCHAR(255)"
+          }
+        },
+        "response_body": {
+          "id": {
+            "type": "UUID"
+          },
+          "name": {
+            "type": "VARCHAR(255)"
+          },
+          "email": {
+            "type": "VARCHAR(255)"
+          },
+          "created_at": {
+            "type": "TIMESTAMP"
+          },
+          "updated_at": {
+            "type": "TIMESTAMP"
+          }
+        },
+        "auth_required": true,
+        "required_role": "Assignee",
+        "validation_rules": [
+          "name is required",
+          "email is required"
+        ]
+      },
+      {
+        "method": "PUT",
+        "path": "/assignees/{id}",
+        "request_body": {
+          "name": {
+            "type": "VARCHAR(255)"
+          },
+          "email": {
+            "type": "VARCHAR(255)"
+          }
+        },
+        "response_body": {
+          "id": {
+            "type": "UUID"
+          },
+          "name": {
+            "type": "VARCHAR(255)"
+          },
+          "email": {
+            "type": "VARCHAR(255)"
+          },
+          "created_at": {
+            "type": "TIMESTAMP"
+          },
+          "updated_at": {
+            "type": "TIMESTAMP"
+          }
+        },
+        "auth_required": true,
+        "required_role": "Assignee",
+        "validation_rules": [
+          "name is required",
+          "email is required"
+        ]
+      },
+      {
+        "method": "DELETE",
+        "path": "/assignees/{id}",
+        "request_body": null,
+        "response_body": null,
+        "auth_required": true,
+        "required_role": "Assignee",
+        "validation_rules": []
+      }
+    ]
+  },
+  "ui_schema": {
+    "pages": [
+      {
+        "path": "/",
+        "title": "Task Management",
+        "role_required": null,
+        "components": [
+          {
+            "name": "Task List",
+            "type": "table",
+            "props": {
+              "columns": [
+                "id",
+                "name",
+                "due_date",
+                "priority",
+                "status",
+                "assignee_id",
+                "team_lead_id"
+              ]
+            },
+            "api_endpoint": "/tasks"
+          }
+        ],
+        "forms": [],
+        "navigation_links": [
+          {
+            "label": "Create Task",
+            "path": "/tasks/create",
+            "role_required": "Assignee"
+          },
+          {
+            "label": "Task Details",
+            "path": "/tasks/{id}",
+            "role_required": "Assignee"
+          }
+        ]
+      },
+      {
+        "path": "/tasks/create",
+        "title": "Create Task",
+        "role_required": "Assignee",
+        "components": [
+          {
+            "name": "Task Form",
+            "type": "form",
+            "props": {
+              "fields": [
+                "name",
+                "due_date",
+                "priority",
+                "status",
+                "assignee_id",
+                "team_lead_id"
+              ]
+            },
+            "api_endpoint": "/tasks"
+          }
+        ],
+        "forms": [
+          {
+            "name": "Task Form",
+            "fields": [
+              {
+                "name": "name",
+                "type": "text",
+                "api_endpoint_input": "name"
+              },
+              {
+                "name": "due_date",
+                "type": "date",
+                "api_endpoint_input": "due_date"
+              },
+              {
+                "name": "priority",
+                "type": "select",
+                "api_endpoint_input": "priority"
+              },
+              {
+                "name": "status",
+                "type": "select",
+                "api_endpoint_input": "status"
+              },
+              {
+                "name": "assignee_id",
+                "type": "select",
+                "api_endpoint_input": "assignee_id"
+              },
+              {
+                "name": "team_lead_id",
+                "type": "select",
+                "api_endpoint_input": "team_lead_id"
+              }
+            ],
+            "submit_endpoint": "/tasks"
+          }
+        ],
+        "navigation_links": [
+          {
+            "label": "Back to Task List",
+            "path": "/",
+            "role_required": null
+          }
+        ]
+      },
+      {
+        "path": "/tasks/{id}",
+        "title": "Task Details",
+        "role_required": "Assignee",
+        "components": [
+          {
+            "name": "Task Details",
+            "type": "card",
+            "props": {
+              "fields": [
+                "id",
+                "name",
+                "due_date",
+                "priority",
+                "status",
+                "assignee_id",
+                "team_lead_id"
+              ]
+            },
+            "api_endpoint": "/tasks/{id}"
+          }
+        ],
+        "forms": [
+          {
+            "name": "Task Edit Form",
+            "fields": [
+              {
+                "name": "name",
+                "type": "text",
+                "api_endpoint_input": "name"
+              },
+              {
+                "name": "due_date",
+                "type": "date",
+                "api_endpoint_input": "due_date"
+              },
+              {
+                "name": "priority",
+                "type": "select",
+                "api_endpoint_input": "priority"
+              },
+              {
+                "name": "status",
+                "type": "select",
+                "api_endpoint_input": "status"
+              },
+              {
+                "name": "assignee_id",
+                "type": "select",
+                "api_endpoint_input": "assignee_id"
+              },
+              {
+                "name": "team_lead_id",
+                "type": "select",
+                "api_endpoint_input": "team_lead_id"
+              }
+            ],
+            "submit_endpoint": "/tasks/{id}"
+          }
+        ],
+        "navigation_links": [
+          {
+            "label": "Back to Task List",
+            "path": "/",
+            "role_required": null
+          },
+          {
+            "label": "Edit Task",
+            "path": "/tasks/{id}/edit",
+            "role_required": "Assignee"
+          }
+        ]
+      },
+      {
+        "path": "/tasks/{id}/edit",
+        "title": "Edit Task",
+        "role_required": "Assignee",
+        "components": [
+          {
+            "name": "Task Edit Form",
+            "type": "form",
+            "props": {
+              "fields": [
+                "name",
+                "due_date",
+                "priority",
+                "status",
+                "assignee_id",
+                "team_lead_id"
+              ]
+            },
+            "api_endpoint": "/tasks/{id}"
+          }
+        ],
+        "forms": [
+          {
+            "name": "Task Edit Form",
+            "fields": [
+              {
+                "name": "name",
+                "type": "text",
+                "api_endpoint_input": "name"
+              },
+              {
+                "name": "due_date",
+                "type": "date",
+                "api_endpoint_input": "due_date"
+              },
+              {
+                "name": "priority",
+                "type": "select",
+                "api_endpoint_input": "priority"
+              },
+              {
+                "name": "status",
+                "type": "select",
+                "api_endpoint_input": "status"
+              },
+              {
+                "name": "assignee_id",
+                "type": "select",
+                "api_endpoint_input": "assignee_id"
+              },
+              {
+                "name": "team_lead_id",
+                "type": "select",
+                "api_endpoint_input": "team_lead_id"
+              }
+            ],
+            "submit_endpoint": "/tasks/{id}"
+          }
+        ],
+        "navigation_links": [
+          {
+            "label": "Back to Task List",
+            "path": "/",
+            "role_required": null
+          },
+          {
+            "label": "Task Details",
+            "path": "/tasks/{id}",
+            "role_required": "Assignee"
+          }
+        ]
+      },
+      {
+        "path": "/team-leads",
+        "title": "Team Leads",
+        "role_required": "Team Lead",
+        "components": [
+          {
+            "name": "Team Lead List",
+            "type": "table",
+            "props": {
+              "columns": [
+                "id",
+                "name",
+                "email"
+              ]
+            },
+            "api_endpoint": "/team-leads"
+          }
+        ],
+        "forms": [],
+        "navigation_links": [
+          {
+            "label": "Create Team Lead",
+            "path": "/team-leads/create",
+            "role_required": "Team Lead"
+          },
+          {
+            "label": "Team Lead Details",
+            "path": "/team-leads/{id}",
+            "role_required": "Team Lead"
+          }
+        ]
+      },
+      {
+        "path": "/team-leads/create",
+        "title": "Create Team Lead",
+        "role_required": "Team Lead",
+        "components": [
+          {
+            "name": "Team Lead Form",
+            "type": "form",
+            "props": {
+              "fields": [
+                "name",
+                "email"
+              ]
+            },
+            "api_endpoint": "/team-leads"
+          }
+        ],
+        "forms": [
+          {
+            "name": "Team Lead Form",
+            "fields": [
+              {
+                "name": "name",
+                "type": "text",
+                "api_endpoint_input": "name"
+              },
+              {
+                "name": "email",
+                "type": "email",
+                "api_endpoint_input": "email"
+              }
+            ],
+            "submit_endpoint": "/team-leads"
+          }
+        ],
+        "navigation_links": [
+          {
+            "label": "Back to Team Lead List",
+            "path": "/team-leads",
+            "role_required": "Team Lead"
+          }
+        ]
+      },
+      {
+        "path": "/team-leads/{id}",
+        "title": "Team Lead Details",
+        "role_required": "Team Lead",
+        "components": [
+          {
+            "name": "Team Lead Details",
+            "type": "card",
+            "props": {
+              "fields": [
+                "id",
+                "name",
+                "email"
+              ]
+            },
+            "api_endpoint": "/team-leads/{id}"
+          }
+        ],
+        "forms": [
+          {
+            "name": "Team Lead Edit Form",
+            "fields": [
+              {
+                "name": "name",
+                "type": "text",
+                "api_endpoint_input": "name"
+              },
+              {
+                "name": "email",
+                "type": "email",
+                "api_endpoint_input": "email"
+              }
+            ],
+            "submit_endpoint": "/team-leads/{id}"
+          }
+        ],
+        "navigation_links": [
+          {
+            "label": "Back to Team Lead List",
+            "path": "/team-leads",
+            "role_required": "Team Lead"
+          },
+          {
+            "label": "Edit Team Lead",
+            "path": "/team-leads/{id}/edit",
+            "role_required": "Team Lead"
+          }
+        ]
+      },
+      {
+        "path": "/team-leads/{id}/edit",
+        "title": "Edit Team Lead",
+        "role_required": "Team Lead",
+        "components": [
+          {
+            "name": "Team Lead Edit Form",
+            "type": "form",
+            "props": {
+              "fields": [
+                "name",
+                "email"
+              ]
+            },
+            "api_endpoint": "/team-leads/{id}"
+          }
+        ],
+        "forms": [
+          {
+            "name": "Team Lead Edit Form",
+            "fields": [
+              {
+                "name": "name",
+                "type": "text",
+                "api_endpoint_input": "name"
+              },
+              {
+                "name": "email",
+                "type": "email",
+                "api_endpoint_input": "email"
+              }
+            ],
+            "submit_endpoint": "/team-leads/{id}"
+          }
+        ],
+        "navigation_links": [
+          {
+            "label": "Back to Team Lead List",
+            "path": "/team-leads",
+            "role_required": "Team Lead"
+          },
+          {
+            "label": "Team Lead Details",
+            "path": "/team-leads/{id}",
+            "role_required": "Team Lead"
+          }
+        ]
+      },
+      {
+        "path": "/assignees",
+        "title": "Assignees",
+        "role_required": "Assignee",
+        "components": [
+          {
+            "name": "Assignee List",
+            "type": "table",
+            "props": {
+              "columns": [
+                "id",
+                "name",
+                "email"
+              ]
+            },
+            "api_endpoint": "/assignees"
+          }
+        ],
+        "forms": [],
+        "navigation_links": [
+          {
+            "label": "Create Assignee",
+            "path": "/assignees/create",
+            "role_required": "Assignee"
+          },
+          {
+            "label": "Assignee Details",
+            "path": "/assignees/{id}",
+            "role_required": "Assignee"
+          }
+        ]
+      },
+      {
+        "path": "/assignees/create",
+        "title": "Create Assignee",
+        "role_required": "Assignee",
+        "components": [
+          {
+            "name": "Assignee Form",
+            "type": "form",
+            "props": {
+              "fields": [
+                "name",
+                "email"
+              ]
+            },
+            "api_endpoint": "/assignees"
+          }
+        ],
+        "forms": [
+          {
+            "name": "Assignee Form",
+            "fields": [
+              {
+                "name": "name",
+                "type": "text",
+                "api_endpoint_input": "name"
+              },
+              {
+                "name": "email",
+                "type": "email",
+                "api_endpoint_input": "email"
+              }
+            ],
+            "submit_endpoint": "/assignees"
+          }
+        ],
+        "navigation_links": [
+          {
+            "label": "Back to Assignee List",
+            "path": "/assignees",
+            "role_required": "Assignee"
+          }
+        ]
+      },
+      {
+        "path": "/assignees/{id}",
+        "title": "Assignee Details",
+        "role_required": "Assignee",
+        "components": [
+          {
+            "name": "Assignee Details",
+            "type": "card",
+            "props": {
+              "fields": [
+                "id",
+                "name",
+                "email"
+              ]
+            },
+            "api_endpoint": "/assignees/{id}"
+          }
+        ],
+        "forms": [
+          {
+            "name": "Assignee Edit Form",
+            "fields": [
+              {
+                "name": "name",
+                "type": "text",
+                "api_endpoint_input": "name"
+              },
+              {
+                "name": "email",
+                "type": "email",
+                "api_endpoint_input": "email"
+              }
+            ],
+            "submit_endpoint": "/assignees/{id}"
+          }
+        ],
+        "navigation_links": [
+          {
+            "label": "Back to Assignee List",
+            "path": "/assignees",
+            "role_required": "Assignee"
+          },
+          {
+            "label": "Edit Assignee",
+            "path": "/assignees/{id}/edit",
+            "role_required": "Assignee"
+          }
+        ]
+      },
+      {
+        "path": "/assignees/{id}/edit",
+        "title": "Edit Assignee",
+        "role_required": "Assignee",
+        "components": [
+          {
+            "name": "Assignee Edit Form",
+            "type": "form",
+            "props": {
+              "fields": [
+                "name",
+                "email"
+              ]
+            },
+            "api_endpoint": "/assignees/{id}"
+          }
+        ],
+        "forms": [
+          {
+            "name": "Assignee Edit Form",
+            "fields": [
+              {
+                "name": "name",
+                "type": "text",
+                "api_endpoint_input": "name"
+              },
+              {
+                "name": "email",
+                "type": "email",
+                "api_endpoint_input": "email"
+              }
+            ],
+            "submit_endpoint": "/assignees/{id}"
+          }
+        ],
+        "navigation_links": [
+          {
+            "label": "Back to Assignee List",
+            "path": "/assignees",
+            "role_required": "Assignee"
+          },
+          {
+            "label": "Assignee Details",
+            "path": "/assignees/{id}",
+            "role_required": "Assignee"
+          }
+        ]
+      }
+    ]
+  },
+  "auth_schema": {
+    "auth_strategy": "jwt",
+    "roles": [
+      "Team Lead",
+      "Assignee"
+    ],
+    "permissions_matrix": {
+      "Team Lead": {
+        "Task": [
+          "create",
+          "read",
+          "update",
+          "delete"
+        ],
+        "Team Lead": [
+          "create",
+          "read",
+          "update",
+          "delete"
+        ],
+        "Assignee": [
+          "create",
+          "read",
+          "update",
+          "delete"
+        ]
+      },
+      "Assignee": {
+        "Task": [
+          "create",
+          "read",
+          "update"
+        ],
+        "Assignee": [
+          "read",
+          "update"
+        ]
+      }
+    },
+    "premium_plan_gates": {
+      "Basic": {
+        "features": [
+          "create_task",
+          "read_task",
+          "update_task"
+        ],
+        "restrictions": [
+          "delete_task",
+          "create_team_lead",
+          "create_assignee"
+        ]
+      },
+      "Premium": {
+        "features": [
+          "create_task",
+          "read_task",
+          "update_task",
+          "delete_task",
+          "create_team_lead",
+          "create_assignee"
+        ],
+        "restrictions": []
+      }
+    },
+    "token_config": {
+      "expiry_seconds": 3600,
+      "refresh_expiry_seconds": 86400,
+      "algorithm": "HS256"
+    }
+  },
+  "validation_report": {
+    "is_valid": false,
+    "errors": [
+      {
+        "layer": "DB",
+        "field": "Task.assignee_id",
+        "description": "Foreign key references table 'Assignee' which does not exist in the provided schema"
+      },
+      {
+        "layer": "DB",
+        "field": "Task.team_lead_id",
+        "description": "Foreign key references table 'Team Lead' which does not exist in the provided schema"
+      },
+      {
+        "layer": "API",
+        "field": "/tasks",
+        "description": "Endpoint requires role 'Assignee' but there is no validation rule to check for this role"
+      },
+      {
+        "layer": "API",
+        "field": "/team-leads",
+        "description": "Endpoint requires role 'Team Lead' but there is no validation rule to check for this role"
+      },
+      {
+        "layer": "API",
+        "field": "/assignees",
+        "description": "Endpoint requires role 'Assignee' but there is no validation rule to check for this role"
+      },
+      {
+        "layer": "UI",
+        "field": "/tasks/create",
+        "description": "Form requires fields 'name', 'due_date', 'priority', 'status', 'assignee_id', 'team_lead_id' but 'assignee_id' and 'team_lead_id' are not validated"
+      },
+      {
+        "layer": "UI",
+        "field": "/team-leads/create",
+        "description": "Form requires fields 'name', 'email' but there is no validation rule to check for these fields"
+      },
+      {
+        "layer": "UI",
+        "field": "/assignees/create",
+        "description": "Form requires fields 'name', 'email' but there is no validation rule to check for these fields"
+      },
+      {
+        "layer": "Auth",
+        "field": "roles",
+        "description": "Role 'Team Lead' has permission to create, read, update, delete 'Assignee' but there is no validation rule to check for this permission"
+      },
+      {
+        "layer": "Auth",
+        "field": "premium_plan_gates",
+        "description": "Premium plan gate 'create_team_lead' is restricted but there is no validation rule to check for this restriction"
+      }
+    ],
+    "warnings": [
+      {
+        "layer": "DB",
+        "field": "Task",
+        "description": "Table 'Task' has a foreign key 'assignee_id' that references table 'Assignee' which is not defined in the schema"
+      },
+      {
+        "layer": "DB",
+        "field": "Task",
+        "description": "Table 'Task' has a foreign key 'team_lead_id' that references table 'Team Lead' which is not defined in the schema"
+      },
+      {
+        "layer": "API",
+        "field": "/tasks",
+        "description": "Endpoint requires authentication but there is no validation rule to check for authentication"
+      },
+      {
+        "layer": "API",
+        "field": "/team-leads",
+        "description": "Endpoint requires authentication but there is no validation rule to check for authentication"
+      },
+      {
+        "layer": "API",
+        "field": "/assignees",
+        "description": "Endpoint requires authentication but there is no validation rule to check for authentication"
+      }
+    ],
+    "conflicts": [
+      {
+        "description": "Role 'Team Lead' has permission to create, read, update, delete 'Assignee' but role 'Assignee' only has permission to read, update 'Assignee'",
+        "resolution_strategy": "Review and update permissions matrix to ensure consistency"
+      },
+      {
+        "description": "Premium plan gate 'create_team_lead' is restricted but role 'Team Lead' has permission to create 'Team Lead'",
+        "resolution_strategy": "Review and update premium plan gates to ensure consistency with permissions matrix"
+      }
+    ],
+    "validated_at": "2024-09-16T14:30:00.000Z"
+  },
+  "repair_report": {
+    "repairs": [
+      {
+        "error_description": "Foreign key references table 'Assignee' which does not exist in the provided schema",
+        "layer_fixed": "DB",
+        "field_fixed": "Task.assignee_id",
+        "before": {
+          "name": "Task",
+          "columns": [
+            {
+              "name": "id",
+              "data_type": "UUID",
+              "nullable": false,
+              "constraints": [
+                "PRIMARY KEY"
+              ]
+            },
+            {
+              "name": "name",
+              "data_type": "VARCHAR(255)",
+              "nullable": false,
+              "constraints": []
+            },
+            {
+              "name": "description",
+              "data_type": "TEXT",
+              "nullable": true,
+              "constraints": []
+            },
+            {
+              "name": "due_date",
+              "data_type": "DATE",
+              "nullable": true,
+              "constraints": []
+            },
+            {
+              "name": "priority",
+              "data_type": "VARCHAR(255)",
+              "nullable": true,
+              "constraints": []
+            },
+            {
+              "name": "status",
+              "data_type": "VARCHAR(255)",
+              "nullable": true,
+              "constraints": []
+            },
+            {
+              "name": "assignee_id",
+              "data_type": "UUID",
+              "nullable": true,
+              "constraints": []
+            },
+            {
+              "name": "team_lead_id",
+              "data_type": "UUID",
+              "nullable": true,
+              "constraints": []
+            },
+            {
+              "name": "created_at",
+              "data_type": "TIMESTAMP",
+              "nullable": false,
+              "constraints": []
+            },
+            {
+              "name": "updated_at",
+              "data_type": "TIMESTAMP",
+              "nullable": false,
+              "constraints": []
+            },
+            {
+              "name": "soft_deleted_at",
+              "data_type": "TIMESTAMP",
+              "nullable": true,
+              "constraints": []
+            }
+          ],
+          "primary_key": "id",
+          "foreign_keys": [
+            {
+              "column": "assignee_id",
+              "references_table": "Assignee",
+              "references_column": "id",
+              "on_delete": "SET NULL"
+            },
+            {
+              "column": "team_lead_id",
+              "references_table": "Team Lead",
+              "references_column": "id",
+              "on_delete": "SET NULL"
+            }
+          ],
+          "indexes": [
+            {
+              "name": "idx_assignee_id",
+              "columns": [
+                "assignee_id"
+              ],
+              "unique": false
+            },
+            {
+              "name": "idx_team_lead_id",
+              "columns": [
+                "team_lead_id"
+              ],
+              "unique": false
+            },
+            {
+              "name": "idx_due_date",
+              "columns": [
+                "due_date"
+              ],
+              "unique": false
+            }
+          ],
+          "relations": [
+            {
+              "table": "Assignee",
+              "type": "one-to-one"
+            },
+            {
+              "table": "Team Lead",
+              "type": "one-to-one"
+            }
+          ]
+        },
+        "after": {
+          "name": "Task",
+          "columns": [
+            {
+              "name": "id",
+              "data_type": "UUID",
+              "nullable": false,
+              "constraints": [
+                "PRIMARY KEY"
+              ]
+            },
+            {
+              "name": "name",
+              "data_type": "VARCHAR(255)",
+              "nullable": false,
+              "constraints": []
+            },
+            {
+              "name": "description",
+              "data_type": "TEXT",
+              "nullable": true,
+              "constraints": []
+            },
+            {
+              "name": "due_date",
+              "data_type": "DATE",
+              "nullable": true,
+              "constraints": []
+            },
+            {
+              "name": "priority",
+              "data_type": "VARCHAR(255)",
+              "nullable": true,
+              "constraints": []
+            },
+            {
+              "name": "status",
+              "data_type": "VARCHAR(255)",
+              "nullable": true,
+              "constraints": []
+            },
+            {
+              "name": "assignee_id",
+              "data_type": "UUID",
+              "nullable": true,
+              "constraints": []
+            },
+            {
+              "name": "team_lead_id",
+              "data_type": "UUID",
+              "nullable": true,
+              "constraints": []
+            },
+            {
+              "name": "created_at",
+              "data_type": "TIMESTAMP",
+              "nullable": false,
+              "constraints": []
+            },
+            {
+              "name": "updated_at",
+              "data_type": "TIMESTAMP",
+              "nullable": false,
+              "constraints": []
+            },
+            {
+              "name": "soft_deleted_at",
+              "data_type": "TIMESTAMP",
+              "nullable": true,
+              "constraints": []
+            }
+          ],
+          "primary_key": "id",
+          "foreign_keys": [
+            {
+              "column": "assignee_id",
+              "references_table": "Assignee",
+              "references_column": "id",
+              "on_delete": "SET NULL"
+            },
+            {
+              "column": "team_lead_id",
+              "references_table": "Team Lead",
+              "references_column": "id",
+              "on_delete": "SET NULL"
+            }
+          ],
+          "indexes": [
+            {
+              "name": "idx_assignee_id",
+              "columns": [
+                "assignee_id"
+              ],
+              "unique": false
+            },
+            {
+              "name": "idx_team_lead_id",
+              "columns": [
+                "team_lead_id"
+              ],
+              "unique": false
+            },
+            {
+              "name": "idx_due_date",
+              "columns": [
+                "due_date"
+              ],
+              "unique": false
+            }
+          ],
+          "relations": [
+            {
+              "table": "Assignee",
+              "type": "one-to-one"
+            },
+            {
+              "table": "Team Lead",
+              "type": "one-to-one"
+            }
+          ]
+        }
+      },
+      {
+        "error_description": "Foreign key references table 'Team Lead' which does not exist in the provided schema",
+        "layer_fixed": "DB",
+        "field_fixed": "Task.team_lead_id",
+        "before": {
+          "name": "Task",
+          "columns": [
+            {
+              "name": "id",
+              "data_type": "UUID",
+              "nullable": false,
+              "constraints": [
+                "PRIMARY KEY"
+              ]
+            },
+            {
+              "name": "name",
+              "data_type": "VARCHAR(255)",
+              "nullable": false,
+              "constraints": []
+            },
+            {
+              "name": "description",
+              "data_type": "TEXT",
+              "nullable": true,
+              "constraints": []
+            },
+            {
+              "name": "due_date",
+              "data_type": "DATE",
+              "nullable": true,
+              "constraints": []
+            },
+            {
+              "name": "priority",
+              "data_type": "VARCHAR(255)",
+              "nullable": true,
+              "constraints": []
+            },
+            {
+              "name": "status",
+              "data_type": "VARCHAR(255)",
+              "nullable": true,
+              "constraints": []
+            },
+            {
+              "name": "assignee_id",
+              "data_type": "UUID",
+              "nullable": true,
+              "constraints": []
+            },
+            {
+              "name": "team_lead_id",
+              "data_type": "UUID",
+              "nullable": true,
+              "constraints": []
+            },
+            {
+              "name": "created_at",
+              "data_type": "TIMESTAMP",
+              "nullable": false,
+              "constraints": []
+            },
+            {
+              "name": "updated_at",
+              "data_type": "TIMESTAMP",
+              "nullable": false,
+              "constraints": []
+            },
+            {
+              "name": "soft_deleted_at",
+              "data_type": "TIMESTAMP",
+              "nullable": true,
+              "constraints": []
+            }
+          ],
+          "primary_key": "id",
+          "foreign_keys": [
+            {
+              "column": "assignee_id",
+              "references_table": "Assignee",
+              "references_column": "id",
+              "on_delete": "SET NULL"
+            },
+            {
+              "column": "team_lead_id",
+              "references_table": "Team Lead",
+              "references_column": "id",
+              "on_delete": "SET NULL"
+            }
+          ],
+          "indexes": [
+            {
+              "name": "idx_assignee_id",
+              "columns": [
+                "assignee_id"
+              ],
+              "unique": false
+            },
+            {
+              "name": "idx_team_lead_id",
+              "columns": [
+                "team_lead_id"
+              ],
+              "unique": false
+            },
+            {
+              "name": "idx_due_date",
+              "columns": [
+                "due_date"
+              ],
+              "unique": false
+            }
+          ],
+          "relations": [
+            {
+              "table": "Assignee",
+              "type": "one-to-one"
+            },
+            {
+              "table": "Team Lead",
+              "type": "one-to-one"
+            }
+          ]
+        },
+        "after": {
+          "name": "Task",
+          "columns": [
+            {
+              "name": "id",
+              "data_type": "UUID",
+              "nullable": false,
+              "constraints": [
+                "PRIMARY KEY"
+              ]
+            },
+            {
+              "name": "name",
+              "data_type": "VARCHAR(255)",
+              "nullable": false,
+              "constraints": []
+            },
+            {
+              "name": "description",
+              "data_type": "TEXT",
+              "nullable": true,
+              "constraints": []
+            },
+            {
+              "name": "due_date",
+              "data_type": "DATE",
+              "nullable": true,
+              "constraints": []
+            },
+            {
+              "name": "priority",
+              "data_type": "VARCHAR(255)",
+              "nullable": true,
+              "constraints": []
+            },
+            {
+              "name": "status",
+              "data_type": "VARCHAR(255)",
+              "nullable": true,
+              "constraints": []
+            },
+            {
+              "name": "assignee_id",
+              "data_type": "UUID",
+              "nullable": true,
+              "constraints": []
+            },
+            {
+              "name": "team_lead_id",
+              "data_type": "UUID",
+              "nullable": true,
+              "constraints": []
+            },
+            {
+              "name": "created_at",
+              "data_type": "TIMESTAMP",
+              "nullable": false,
+              "constraints": []
+            },
+            {
+              "name": "updated_at",
+              "data_type": "TIMESTAMP",
+              "nullable": false,
+              "constraints": []
+            },
+            {
+              "name": "soft_deleted_at",
+              "data_type": "TIMESTAMP",
+              "nullable": true,
+              "constraints": []
+            }
+          ],
+          "primary_key": "id",
+          "foreign_keys": [
+            {
+              "column": "assignee_id",
+              "references_table": "Assignee",
+              "references_column": "id",
+              "on_delete": "SET NULL"
+            },
+            {
+              "column": "team_lead_id",
+              "references_table": "Team Lead",
+              "references_column": "id",
+              "on_delete": "SET NULL"
+            }
+          ],
+          "indexes": [
+            {
+              "name": "idx_assignee_id",
+              "columns": [
+                "assignee_id"
+              ],
+              "unique": false
+            },
+            {
+              "name": "idx_team_lead_id",
+              "columns": [
+                "team_lead_id"
+              ],
+              "unique": false
+            },
+            {
+              "name": "idx_due_date",
+              "columns": [
+                "due_date"
+              ],
+              "unique": false
+            }
+          ],
+          "relations": [
+            {
+              "table": "Assignee",
+              "type": "one-to-one"
+            },
+            {
+              "table": "Team Lead",
+              "type": "one-to-one"
+            }
+          ]
+        }
+      },
+      {
+        "error_description": "Endpoint requires role 'Assignee' but there is no validation rule to check for the existence of the assignee",
+        "layer_fixed": "API",
+        "field_fixed": "/tasks/{id}",
+        "before": {
+          "method": "GET",
+          "path": "/tasks/{id}",
+          "request_body": null,
+          "response_body": {
+            "id": {
+              "type": "UUID"
+            },
+            "name": {
+              "type": "VARCHAR(255)"
+            },
+            "due_date": {
+              "type": "DATE"
+            },
+            "priority": {
+              "type": "VARCHAR(255)"
+            },
+            "status": {
+              "type": "VARCHAR(255)"
+            },
+            "assignee_id": {
+              "type": "UUID"
+            },
+            "team_lead_id": {
+              "type": "UUID"
+            },
+            "created_at": {
+              "type": "TIMESTAMP"
+            },
+            "updated_at": {
+              "type": "TIMESTAMP"
+            }
+          },
+          "auth_required": true,
+          "required_role": "Assignee",
+          "validation_rules": []
+        },
+        "after": {
+          "method": "GET",
+          "path": "/tasks/{id}",
+          "request_body": null,
+          "response_body": {
+            "id": {
+              "type": "UUID"
+            },
+            "name": {
+              "type": "VARCHAR(255)"
+            },
+            "due_date": {
+              "type": "DATE"
+            },
+            "priority": {
+              "type": "VARCHAR(255)"
+            },
+            "status": {
+              "type": "VARCHAR(255)"
+            },
+            "assignee_id": {
+              "type": "UUID"
+            },
+            "team_lead_id": {
+              "type": "UUID"
+            },
+            "created_at": {
+              "type": "TIMESTAMP"
+            },
+            "updated_at": {
+              "type": "TIMESTAMP"
+            }
+          },
+          "auth_required": true,
+          "required_role": "Assignee",
+          "validation_rules": [
+            "assignee_id is required"
+          ]
+        }
+      },
+      {
+        "error_description": "Endpoint requires role 'Team Lead' but there is no validation rule to check for the existence of the team lead",
+        "layer_fixed": "API",
+        "field_fixed": "/team-leads/{id}",
+        "before": {
+          "method": "GET",
+          "path": "/team-leads/{id}",
+          "request_body": null,
+          "response_body": {
+            "id": {
+              "type": "UUID"
+            },
+            "name": {
+              "type": "VARCHAR(255)"
+            },
+            "email": {
+              "type": "VARCHAR(255)"
+            },
+            "created_at": {
+              "type": "TIMESTAMP"
+            },
+            "updated_at": {
+              "type": "TIMESTAMP"
+            }
+          },
+          "auth_required": true,
+          "required_role": "Team Lead",
+          "validation_rules": []
+        },
+        "after": {
+          "method": "GET",
+          "path": "/team-leads/{id}",
+          "request_body": null,
+          "response_body": {
+            "id": {
+              "type": "UUID"
+            },
+            "name": {
+              "type": "VARCHAR(255)"
+            },
+            "email": {
+              "type": "VARCHAR(255)"
+            },
+            "created_at": {
+              "type": "TIMESTAMP"
+            },
+            "updated_at": {
+              "type": "TIMESTAMP"
+            }
+          },
+          "auth_required": true,
+          "required_role": "Team Lead",
+          "validation_rules": [
+            "team_lead_id is required"
+          ]
+        }
+      },
+      {
+        "error_description": "Form requires fields 'name', 'due_date', 'priority', 'status', 'assignee_id', 'team_lead_id' but there is no validation rule to check for the existence of the assignee and team lead",
+        "layer_fixed": "UI",
+        "field_fixed": "/tasks/{id}/edit",
+        "before": {
+          "path": "/tasks/{id}/edit",
+          "title": "Edit Task",
+          "role_required": "Assignee",
+          "components": [
+            {
+              "name": "Task Edit Form",
+              "type": "form",
+              "api_endpoint": "/tasks/{id}"
+            }
+          ],
+          "forms": [
+            {
+              "name": "Task Edit Form",
+              "fields": [
+                {
+                  "name": "name",
+                  "type": "text",
+                  "api_endpoint_input": "name"
+                },
+                {
+                  "name": "due_date",
+                  "type": "date",
+                  "api_endpoint_input": "due_date"
+                },
+                {
+                  "name": "priority",
+                  "type": "select",
+                  "api_endpoint_input": "priority"
+                },
+                {
+                  "name": "status",
+                  "type": "select",
+                  "api_endpoint_input": "status"
+                },
+                {
+                  "name": "assignee_id",
+                  "type": "select",
+                  "api_endpoint_input": "assignee_id"
+                },
+                {
+                  "name": "team_lead_id",
+                  "type": "select",
+                  "api_endpoint_input": "team_lead_id"
+                }
+              ],
+              "submit_endpoint": "/tasks/{id}"
+            }
+          ]
+        },
+        "after": {
+          "path": "/tasks/{id}/edit",
+          "title": "Edit Task",
+          "role_required": "Assignee",
+          "components": [
+            {
+              "name": "Task Edit Form",
+              "type": "form",
+              "api_endpoint": "/tasks/{id}"
+            }
+          ],
+          "forms": [
+            {
+              "name": "Task Edit Form",
+              "fields": [
+                {
+                  "name": "name",
+                  "type": "text",
+                  "api_endpoint_input": "name"
+                },
+                {
+                  "name": "due_date",
+                  "type": "date",
+                  "api_endpoint_input": "due_date"
+                },
+                {
+                  "name": "priority",
+                  "type": "select",
+                  "api_endpoint_input": "priority"
+                },
+                {
+                  "name": "status",
+                  "type": "select",
+                  "api_endpoint_input": "status"
+                },
+                {
+                  "name": "assignee_id",
+                  "type": "select",
+                  "api_endpoint_input": "assignee_id"
+                },
+                {
+                  "name": "team_lead_id",
+                  "type": "select",
+                  "api_endpoint_input": "team_lead_id"
+                }
+              ],
+              "submit_endpoint": "/tasks/{id}",
+              "validation_rules": [
+                "assignee_id is required",
+                "team_lead_id is required"
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "error_description": "Role 'Team Lead' has permission to create, read, update, delete 'Assignee' but there is no validation rule to check for the existence of the assignee",
+        "layer_fixed": "Auth",
+        "field_fixed": "permissions_matrix",
+        "before": {
+          "auth_strategy": "jwt",
+          "roles": [
+            "Team Lead",
+            "Assignee"
+          ],
+          "permissions_matrix": {
+            "Team Lead": {
+              "Task": [
+                "create",
+                "read",
+                "update",
+                "delete"
+              ],
+              "Team Lead": [
+                "create",
+                "read",
+                "update",
+                "delete"
+              ],
+              "Assignee": [
+                "create",
+                "read",
+                "update",
+                "delete"
+              ]
+            },
+            "Assignee": {
+              "Task": [
+                "create",
+                "read",
+                "update"
+              ],
+              "Assignee": [
+                "read",
+                "update"
+              ]
+            }
+          },
+          "premium_plan_gates": {
+            "Basic": {
+              "features": [
+                "create_task",
+                "read_task",
+                "update_task"
+              ],
+              "restrictions": [
+                "delete_task",
+                "create_team"
+              ]
+            }
+          }
+        }
+      }
+    ]
+  },
+  "runtime_report": {
+    "execution_viable": false,
+    "simulated_flows": [
+      {
+        "name": "CREATE",
+        "steps": [
+          "form submission",
+          "POST request to /tasks",
+          "INSERT into Task table"
+        ],
+        "result": "failed due to missing Assignee and Team Lead tables"
+      },
+      {
+        "name": "READ",
+        "steps": [
+          "GET request to /tasks/{id}",
+          "SELECT from Task table"
+        ],
+        "result": "failed due to missing validation rules for assignee and team lead"
+      },
+      {
+        "name": "UPDATE",
+        "steps": [
+          "form submission",
+          "PUT request to /tasks/{id}",
+          "UPDATE Task table"
+        ],
+        "result": "failed due to missing validation rules for assignee and team lead"
+      },
+      {
+        "name": "DELETE",
+        "steps": [
+          "button click",
+          "DELETE request to /tasks/{id}",
+          "soft delete from Task table"
+        ],
+        "result": "failed due to missing validation rules for assignee and team lead"
+      }
+    ],
+    "blocking_issues": [
+      "Missing Assignee table",
+      "Missing Team Lead table",
+      "Missing validation rules for assignee and team lead in API endpoints",
+      "Missing validation rules for assignee and team lead in UI forms"
+    ],
+    "warnings": [
+      "Field 'due_date' is nullable but there is no default value provided",
+      "Endpoint '/tasks' does not have any validation rules to check for the existence of the task",
+      "Form '/tasks/create' does not have any validation rules to check for the existence of the assignee and team lead"
+    ]
+  },
+  "workflow_stubs": [
+    {
+      "name": "Trigger Slack when Task status changed",
+      "trigger": {
+        "entity": "Task",
+        "event": "status_changed",
+        "condition": null
+      },
+      "integration_id": "slack",
+      "action_id": "send_message",
+      "payload_mapping": {},
+      "description": "",
+      "is_valid": true,
+      "hook_id": "hook_slack_send_message"
+    }
+  ],
+  "integration_hooks": [
+    {
+      "hook_id": "hook_slack_send_message",
+      "integration_id": "slack",
+      "action_id": "send_message",
+      "auth_type": "api_key",
+      "required_inputs": [
+        "channel",
+        "text"
+      ],
+      "is_stub": false,
+      "validation_status": "valid",
+      "validation_errors": []
+    }
+  ],
+  "app_spec": {
+    "meta": {
+      "app_name": "Engineering Team Task Manager",
+      "app_type": "project_management",
+      "description": "Task manager for an engineering team. Tasks have due dates, assignees, priorities, and status. Team lead gets a Slack message when a task is overdue.",
+      "features": [
+        "Task Management",
+        "Due Date Tracking",
+        "Assignee Management",
+        "Priority Management",
+        "Status Management",
+        "Overdue Task Notification"
+      ],
+      "assumptions": [
+        "The application will have a web-based interface",
+        "The application will use a database to store task information",
+        "The team lead will receive a Slack message when a task is overdue"
+      ]
+    },
+    "entities": [
+      {
+        "name": "Task",
+        "table_name": "Task",
+        "fields": [
+          "id",
+          "name",
+          "description",
+          "due_date",
+          "priority",
+          "status",
+          "assignee_id",
+          "team_lead_id",
+          "created_at",
+          "updated_at",
+          "soft_deleted_at"
+        ],
+        "relations": [
+          "belongs to Assignee via assignee_id",
+          "belongs to Team Lead via team_lead_id"
+        ]
+      },
+      {
+        "name": "Team Lead",
+        "table_name": "team leads",
+        "fields": [],
+        "relations": []
+      },
+      {
+        "name": "Assignee",
+        "table_name": "Assignee",
+        "fields": [
+          "id",
+          "name",
+          "email",
+          "created_at",
+          "updated_at"
+        ],
+        "relations": []
+      }
+    ],
+    "pages": [
+      {
+        "path": "/",
+        "title": "Task Management",
+        "role_required": null,
+        "layout": "list",
+        "bound_entity": null
+      },
+      {
+        "path": "/tasks/create",
+        "title": "Create Task",
+        "role_required": "Assignee",
+        "layout": "list",
+        "bound_entity": "Task"
+      },
+      {
+        "path": "/tasks/{id}",
+        "title": "Task Details",
+        "role_required": "Assignee",
+        "layout": "list",
+        "bound_entity": "Task"
+      },
+      {
+        "path": "/tasks/{id}/edit",
+        "title": "Edit Task",
+        "role_required": "Assignee",
+        "layout": "detail",
+        "bound_entity": "Task"
+      },
+      {
+        "path": "/team-leads",
+        "title": "Team Leads",
+        "role_required": "Team Lead",
+        "layout": "list",
+        "bound_entity": null
+      },
+      {
+        "path": "/team-leads/create",
+        "title": "Create Team Lead",
+        "role_required": "Team Lead",
+        "layout": "list",
+        "bound_entity": null
+      },
+      {
+        "path": "/team-leads/{id}",
+        "title": "Team Lead Details",
+        "role_required": "Team Lead",
+        "layout": "list",
+        "bound_entity": null
+      },
+      {
+        "path": "/team-leads/{id}/edit",
+        "title": "Edit Team Lead",
+        "role_required": "Team Lead",
+        "layout": "detail",
+        "bound_entity": null
+      },
+      {
+        "path": "/assignees",
+        "title": "Assignees",
+        "role_required": "Assignee",
+        "layout": "list",
+        "bound_entity": "Assignee"
+      },
+      {
+        "path": "/assignees/create",
+        "title": "Create Assignee",
+        "role_required": "Assignee",
+        "layout": "list",
+        "bound_entity": "Assignee"
+      },
+      {
+        "path": "/assignees/{id}",
+        "title": "Assignee Details",
+        "role_required": "Assignee",
+        "layout": "list",
+        "bound_entity": "Assignee"
+      },
+      {
+        "path": "/assignees/{id}/edit",
+        "title": "Edit Assignee",
+        "role_required": "Assignee",
+        "layout": "detail",
+        "bound_entity": "Assignee"
+      }
+    ],
+    "api_endpoints": [
+      {
+        "method": "GET",
+        "path": "/tasks",
+        "auth_required": true,
+        "required_role": "Assignee",
+        "handler_description": "GET /tasks",
+        "rate_limit_flag": false
+      },
+      {
+        "method": "GET",
+        "path": "/tasks/{id}",
+        "auth_required": true,
+        "required_role": "Assignee",
+        "handler_description": "GET /tasks/{id}",
+        "rate_limit_flag": false
+      },
+      {
+        "method": "POST",
+        "path": "/tasks",
+        "auth_required": true,
+        "required_role": "Assignee",
+        "handler_description": "POST /tasks",
+        "rate_limit_flag": false
+      },
+      {
+        "method": "PUT",
+        "path": "/tasks/{id}",
+        "auth_required": true,
+        "required_role": "Assignee",
+        "handler_description": "PUT /tasks/{id}",
+        "rate_limit_flag": false
+      },
+      {
+        "method": "DELETE",
+        "path": "/tasks/{id}",
+        "auth_required": true,
+        "required_role": "Assignee",
+        "handler_description": "DELETE /tasks/{id}",
+        "rate_limit_flag": false
+      },
+      {
+        "method": "GET",
+        "path": "/team-leads",
+        "auth_required": true,
+        "required_role": "Team Lead",
+        "handler_description": "GET /team-leads",
+        "rate_limit_flag": false
+      },
+      {
+        "method": "GET",
+        "path": "/team-leads/{id}",
+        "auth_required": true,
+        "required_role": "Team Lead",
+        "handler_description": "GET /team-leads/{id}",
+        "rate_limit_flag": false
+      },
+      {
+        "method": "POST",
+        "path": "/team-leads",
+        "auth_required": true,
+        "required_role": "Team Lead",
+        "handler_description": "POST /team-leads",
+        "rate_limit_flag": false
+      },
+      {
+        "method": "PUT",
+        "path": "/team-leads/{id}",
+        "auth_required": true,
+        "required_role": "Team Lead",
+        "handler_description": "PUT /team-leads/{id}",
+        "rate_limit_flag": false
+      },
+      {
+        "method": "DELETE",
+        "path": "/team-leads/{id}",
+        "auth_required": true,
+        "required_role": "Team Lead",
+        "handler_description": "DELETE /team-leads/{id}",
+        "rate_limit_flag": false
+      },
+      {
+        "method": "GET",
+        "path": "/assignees",
+        "auth_required": true,
+        "required_role": "Assignee",
+        "handler_description": "GET /assignees",
+        "rate_limit_flag": false
+      },
+      {
+        "method": "GET",
+        "path": "/assignees/{id}",
+        "auth_required": true,
+        "required_role": "Assignee",
+        "handler_description": "GET /assignees/{id}",
+        "rate_limit_flag": false
+      },
+      {
+        "method": "POST",
+        "path": "/assignees",
+        "auth_required": true,
+        "required_role": "Assignee",
+        "handler_description": "POST /assignees",
+        "rate_limit_flag": false
+      },
+      {
+        "method": "PUT",
+        "path": "/assignees/{id}",
+        "auth_required": true,
+        "required_role": "Assignee",
+        "handler_description": "PUT /assignees/{id}",
+        "rate_limit_flag": false
+      },
+      {
+        "method": "DELETE",
+        "path": "/assignees/{id}",
+        "auth_required": true,
+        "required_role": "Assignee",
+        "handler_description": "DELETE /assignees/{id}",
+        "rate_limit_flag": false
+      }
+    ],
+    "auth_rules": {
+      "auth_strategy": "jwt",
+      "roles": [
+        "Team Lead",
+        "Assignee"
+      ]
+    },
+    "integration_hooks": [
+      {
+        "hook_id": "hook_slack_send_message",
+        "integration_id": "slack",
+        "action_id": "send_message",
+        "auth_type": "api_key",
+        "required_inputs": [
+          "channel",
+          "text"
+        ],
+        "is_stub": false,
+        "validation_status": "valid",
+        "validation_errors": []
+      }
+    ],
+    "workflow_stubs": [
+      {
+        "name": "Trigger Slack when Task status changed",
+        "trigger": {
+          "entity": "Task",
+          "event": "status_changed",
+          "condition": null
+        },
+        "integration_id": "slack",
+        "action_id": "send_message",
+        "payload_mapping": {},
+        "description": "",
+        "is_valid": true,
+        "hook_id": "hook_slack_send_message"
+      }
+    ]
+  },
+  "repair_log": [
+    {
+      "attempt_number": 1,
+      "strategy": "STRUCTURAL",
+      "error_input": "Foreign key references table 'Assignee' which does not exist in the provided schema; Foreign key references table 'Team Lead' which does not exist in the provided schema; Endpoint requires role 'Assignee' but there is no validation rule to check for this role",
+      "outcome": "repaired",
+      "errors_before": 10,
+      "errors_after": 0
+    },
+    {
+      "attempt_number": 2,
+      "strategy": "ESCALATED",
+      "error_input": "Foreign key references table 'Assignee' which does not exist in the provided schema; Foreign key references table 'Team Lead' which does not exist in the provided schema; Endpoint requires role 'Assignee' but there is no validation rule to check for this role",
+      "outcome": "escalated",
+      "errors_before": 10,
+      "errors_after": 0
+    },
+    {
+      "attempt_number": 3,
+      "strategy": "ESCALATED",
+      "error_input": "Foreign key references table 'Assignee' which does not exist in the provided schema; Foreign key references table 'Team Lead' which does not exist in the provided schema; Endpoint requires role 'Assignee' but there is no validation rule to check for this role",
+      "outcome": "escalated",
+      "errors_before": 10,
+      "errors_after": 0
+    }
+  ],
+  "mermaid_diagrams": {
+    "pipeline_flow": "%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#2a2520', 'primaryTextColor': '#f7f6f3', 'primaryBorderColor': '#e86d2a', 'lineColor': '#ef8a52'}}}%%\ngraph LR\n    intent_extraction -->|27891ms| architecture_design\n    architecture_design -->|2953ms| db_schema\n    db_schema -->|2593ms| api_schema\n    api_schema -->|9468ms| ui_schema\n    ui_schema -->|6094ms| auth_schema\n    auth_schema -->|2016ms| workflow_stubs\n    workflow_stubs -->|875ms| validation\n    validation -->|1140ms| repair\n    repair -->|10297ms| runtime_validation\n    style intent_extraction fill:#f9f,stroke:#333,stroke-width:4px\n    style architecture_design fill:#f9f,stroke:#333,stroke-width:4px\n    style db_schema fill:#f9f,stroke:#333,stroke-width:4px\n    style api_schema fill:#f9f,stroke:#333,stroke-width:4px\n    style ui_schema fill:#f9f,stroke:#333,stroke-width:4px\n    style auth_schema fill:#f9f,stroke:#333,stroke-width:4px\n    style workflow_stubs fill:#f9f,stroke:#333,stroke-width:4px\n    style validation fill:#f9f,stroke:#333,stroke-width:4px\n    style repair fill:#f9f,stroke:#333,stroke-width:4px\n    style runtime_validation fill:#f9f,stroke:#333,stroke-width:4px",
+    "er_diagram": "erDiagram\n    TABLES {\n        {6 keys} ||--|{6 keys} : assigns\n        {6 keys} ||--|{6 keys} : leads\n        {6 keys} ||--|{6 keys} : tasks\n    }",
+    "api_sequence": "sequenceDiagram\n    participant TaskManager as \\\"Task Manager\\\"\n    participant Assignee as \\\"Assignee\\\"\n    participant TeamLead as \\\"Team Lead\\\"\n    TaskManager->>Assignee: Assign task\n    Assignee->>TaskManager: Update task status\n    TaskManager->>TeamLead: Notify team lead\n    TeamLead->>TaskManager: Update task priority\n    TaskManager->>Assignee: Update task assignment"
+  },
+  "eval_metrics": {
+    "total_latency_ms": 474952,
+    "total_tokens": 29517,
+    "repair_count": 3,
+    "hitl_count": 2,
+    "stage_latencies": {
+      "intent_extraction": 27891,
+      "architecture_design": 2953,
+      "db_schema": 2593,
+      "api_schema": 9468,
+      "ui_schema": 6094,
+      "auth_schema": 2016,
+      "workflow_stubs": 875,
+      "validation": 1140,
+      "repair": 10297,
+      "runtime_validation": 4125,
+      "logging": 3468
+    },
+    "estimated_cost_usd": 0.017415,
+    "stage_costs_usd": {
+      "task_extract_intent": 0.00050177,
+      "task_design_architecture": 0.00105176,
+      "task_generate_db_schema": 0.0014007099999999999,
+      "task_generate_api_schema": 0.0039993,
+      "task_generate_ui_schema": 0.00370166,
+      "task_generate_auth_schema": 0.0012974699999999998,
+      "task_generate_workflow_stubs": 0,
+      "task_validate_schemas": 0.00613553,
+      "task_repair_schemas": 0,
+      "task_validate_runtime": 0,
+      "task_log_progress": 0.00165883
+    },
+    "stage_models_used": {
+      "intent_extraction": "groq/llama-3.3-70b-versatile",
+      "architecture_design": "groq/llama-3.3-70b-versatile",
+      "workflow_stubs": "groq/llama-3.3-70b-versatile",
+      "validation": "groq/llama-3.3-70b-versatile",
+      "repair": "groq/llama-3.3-70b-versatile",
+      "runtime_validation": "groq/llama-3.3-70b-versatile",
+      "logging": "groq/llama-3.3-70b-versatile"
+    },
+    "total_cost_usd": 0.019747,
+    "routing_config": {
+      "stages": {
+        "intent_extraction": {
+          "primary": "groq/llama-3.3-70b-versatile",
+          "fallback": "openrouter/meta-llama/llama-3.3-70b-instruct",
+          "temperature": 0.1
+        },
+        "architecture_design": {
+          "primary": "groq/llama-3.3-70b-versatile",
+          "fallback": "openrouter/meta-llama/llama-3.3-70b-instruct",
+          "temperature": 0.2
+        },
+        "db_schema": {
+          "primary": "groq/llama-3.3-70b-versatile",
+          "fallback": "gemini/gemini-1.5-flash",
+          "temperature": 0.2
+        },
+        "api_schema": {
+          "primary": "groq/llama-3.3-70b-versatile",
+          "fallback": "gemini/gemini-1.5-flash",
+          "temperature": 0.2
+        },
+        "ui_schema": {
+          "primary": "groq/llama-3.3-70b-versatile",
+          "fallback": "openrouter/meta-llama/llama-3.3-70b-instruct",
+          "temperature": 0.2
+        },
+        "auth_schema": {
+          "primary": "groq/llama-3.3-70b-versatile",
+          "fallback": "openrouter/meta-llama/llama-3.3-70b-instruct",
+          "temperature": 0.2
+        },
+        "validation": {
+          "primary": "groq/llama-3.3-70b-versatile",
+          "fallback": "openrouter/meta-llama/llama-3.3-70b-instruct",
+          "temperature": 0.1
+        },
+        "repair": {
+          "primary": "groq/llama-3.3-70b-versatile",
+          "fallback": "gemini/gemini-1.5-flash",
+          "temperature": 0.2
+        },
+        "workflow_stubs": {
+          "primary": "groq/llama-3.3-70b-versatile",
+          "fallback": "openrouter/meta-llama/llama-3.3-70b-instruct",
+          "temperature": 0.2
+        },
+        "runtime_validation": {
+          "primary": "groq/llama-3.3-70b-versatile",
+          "fallback": "openrouter/meta-llama/llama-3.3-70b-instruct",
+          "temperature": 0.1
+        },
+        "logging": {
+          "primary": "groq/llama-3.3-70b-versatile",
+          "fallback": "openrouter/meta-llama/llama-3.3-70b-instruct",
+          "temperature": 0.3
+        }
+      },
+      "providers": [
+        "groq",
+        "gemini",
+        "openrouter"
+      ]
+    }
+  }
+}

@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: oneatlas-appspec-engine-api
+    env: python
+    buildCommand: "pip install uv && uv sync"
+    startCommand: "uv run uvicorn compiler.main:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.0
+      - key: GROQ_API_KEY
+        sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: APP_ENV
+        value: production
+      - key: LOG_LEVEL
+        value: debug

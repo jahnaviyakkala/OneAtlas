@@ -1,0 +1,398 @@
+# ProtoFlow Task Definitions
+# Tasks run sequentially unless async_execution: true.
+# Parallel tasks (db, api, ui, auth) are fanned out via asyncio.gather in crew.py.
+# All LLM responses MUST be valid JSON — no prose, no markdown fences.
+
+task_extract_intent:
+  description: >
+    Parse the user's natural language prompt into a structured IntentSchema.
+    
+    User Prompt: {user_prompt}
+
+    Extract the following fields:
+    - app_name: a short human-readable name for the application (e.g. Real Estate CRM, Team Task Manager)
+    - app_type: the category of application - must be one of: crm | project_management | ecommerce | hr_tool | inventory | content_platform | analytics | custom
+    - features: list of feature names
+    - entities: list of domain entity names
+    - user_roles: list of user role names
+    - integrations: list of third-party integrations
+    - premium_requirements: description of premium/paid features if any
+    - analytics_requirements: description of analytics needs if any
+
+    Assign a confidence score (0.0 to 1.0) to the parsed result.
+
+    HITL IS MANDATORY — ask the user at least one clarifying question on EVERY run:
+    - For confidence < 0.75 or vague prompts (< 15 meaningful words): ask up to 3 targeted questions.
+    - For clear prompts: ask exactly 1 confirmatory question (e.g. "I'm assuming JWT auth and
+      a REST API — does that work for you?").
+
+    Emit a hitl_required SSE event with the questions and wait for answers before producing
+    the final IntentSchema output.
+
+    Document every assumption made in the assumptions[] array.
+    Record all clarification answers in clarifications_received[].
+
+    Respond only with valid JSON. No prose, no markdown fences, no explanation.
+  expected_output: >
+    Valid IntentSchema JSON with fields:
+    app_name (string),
+    app_type (string - enum: crm|project_management|ecommerce|hr_tool|inventory|content_platform|analytics|custom),
+    features (array of strings),
+    entities (array of strings),
+    user_roles (array of strings),
+    integrations (array of strings),
+    premium_requirements (string or null),
+    analytics_requirements (string or null),
+    confidence (float 0.0-1.0),
+    assumptions (array of strings),
+    clarifications_received (array of strings),
+    hitl_required (object containing a 'questions' array of strings).
+  agent: intent_extractor
+  async_execution: false
+
+task_design_architecture:
+  description: >
+    Take the IntentSchema from task_extract_intent and design the full application architecture.
+    
+    User Prompt: {user_prompt}
+    Intent Schema: {intent_schema}
+
+    Define:
+    - entities[]: all domain entities with their attributes and relationships
+    - relations[]: entity relationships with cardinality (one-to-many, many-to-many, etc.)
+    - page_flows[]: page navigation flows with entry points and transitions
+    - role_hierarchy{}: role inheritance and permission levels
+    - business_rules[]: premium gating, admin-only views, plan restrictions
+    - data_flows[]: how data moves between layers
+
+    RELATION MINIMALISM RULE:
+    Only add many-to-many relationships when EXPLICITLY stated in the user's prompt
+    (e.g., "multiple users can collaborate on the same task"). Do NOT add speculative
+    junction tables. For single-owner apps where each resource belongs to one user
+    (projects.user_id FK, tasks.project_id FK), the FK chain is sufficient — a separate
+    users_tasks junction is unnecessary and creates downstream validation errors when no
+    API endpoints exist for it.
+
+    Consider all assumptions documented by intent_extractor before designing.
+
+    If any architectural decision has more than two equally valid approaches
+    (e.g. multi-tenant vs single-tenant), ask one follow-up clarification question
+    via a hitl_required SSE event before proceeding.
+
+    Respond only with valid JSON. No prose, no markdown fences, no explanation.
+  expected_output: >
+    Valid ArchitectureSchema JSON with fields:
+    entities (array of EntitySchema objects with name, attributes, description),
+    relations (array of RelationSchema objects with from_entity, to_entity, cardinality, description),
+    page_flows (array of objects with name, pages, transitions),
+    role_hierarchy (object mapping role names to their parent roles and levels),
+    business_rules (array of BusinessRuleSchema objects with name, description, affected_entities),
+    data_flows (array of objects with name, source, destination, description).
+  agent: system_architect
+  context:
+    - task_extract_intent
+  async_execution: true
+
+task_generate_db_schema:
+  description: >
+    Generate a complete relational database schema from the ArchitectureSchema.
+    
+    User Prompt: {user_prompt}
+    Architecture Schema: {architecture_schema}
+
+    Rules:
+    - Every entity in ArchitectureSchema MUST become a table.
+    - Every table MUST have: id (UUID, primary key), created_at (timestamp), updated_at (timestamp).
+    - Add soft_deleted_at (timestamp, nullable) to tables that represent user-owned resources.
+    - Define all columns with: name, data_type, nullable (bool), default_value, constraints.
+    - Define all foreign keys with: column, references_table, references_column, on_delete action.
+    - Define indexes for all foreign key columns and frequently queried columns.
+    - Define junction tables for all many-to-many relations.
+
+    Respond only with valid JSON. No prose, no markdown fences, no explanation.
+  expected_output: >
+    Valid DBSchema JSON with fields:
+    tables (array of TableSchema objects each containing:
+      name (string),
+      columns (array of ColumnSchema with name, data_type, nullable, default_value, constraints),
+      primary_key (string column name),
+      foreign_keys (array with column, references_table, references_column, on_delete),
+      indexes (array with name, columns, unique),
+      relations (array describing logical relations to other tables)
+    ).
+  agent: db_schema_agent
+  async_execution: true
+
+task_generate_api_schema:
+  description: >
+    Generate a complete REST API schema from the ArchitectureSchema and DBSchema.
+    
+    User Prompt: {user_prompt}
+    Architecture Schema: {architecture_schema}
+    DB Schema: {db_schema}
+
+    Rules:
+    - Every endpoint's request_body and response_body fields MUST map exactly to existing
+      DB columns — no invented fields allowed.
+    - Include for each endpoint: method, path, description, request_body{}, response_body{},
+      auth_required (bool), required_role (string or null), validation_rules[], error_responses[].
+    - Group endpoints by resource/entity.
+    - Include standard CRUD endpoints (GET list, GET by id, POST, PUT, DELETE) for each entity.
+    - Include pagination parameters (page, page_size) on all list endpoints.
+
+    Respond only with valid JSON. No prose, no markdown fences, no explanation.
+  expected_output: >
+    Valid APISchema JSON with fields:
+    endpoints (array of EndpointSchema objects each containing:
+      method (string: GET/POST/PUT/PATCH/DELETE),
+      path (string),
+      description (string),
+      request_body (object with field definitions or null),
+      response_body (object with field definitions),
+      auth_required (bool),
+      required_role (string or null),
+      validation_rules (array of strings),
+      error_responses (array of objects with status_code and description)
+    ).
+  agent: api_schema_agent
+  async_execution: true
+
+task_generate_ui_schema:
+  description: >
+    Generate a complete UI schema from the ArchitectureSchema and APISchema.
+    
+    User Prompt: {user_prompt}
+    Architecture Schema: {architecture_schema}
+    API Schema: {api_schema}
+
+    Rules:
+    - Every page MUST be defined with its components, layout, and navigation links.
+    - Every form field MUST map to a specific API endpoint input field.
+    - Every role-gated view MUST reference a role defined in ArchitectureSchema.
+    - Define navigation structure and routing (path, page title, role_required).
+    - Define components per page with their type, props, and data source (API endpoint).
+    - If the user prompt mentions "sign up" or "register", you MUST include a /register page
+      with a registration form that maps to the user creation API endpoint.
+    - If the user prompt mentions "login", you MUST include a /login page.
+
+    Respond only with valid JSON. No prose, no markdown fences, no explanation.
+  expected_output: >
+    Valid UISchema JSON with fields:
+    pages (array of PageSchema objects each containing:
+      path (string),
+      title (string),
+      role_required (string or null),
+      components (array of ComponentSchema with name, type, props, api_endpoint),
+      forms (array of FormSchema with name, fields, submit_endpoint),
+      navigation_links (array of objects with label, path, role_required)
+    ).
+  agent: ui_schema_agent
+  async_execution: true
+
+task_generate_auth_schema:
+  description: >
+    Generate the complete auth and roles schema from the ArchitectureSchema.
+    
+    User Prompt: {user_prompt}
+    Architecture Schema: {architecture_schema}
+    UI Schema: {ui_schema}
+
+    Rules:
+    - Default to JWT unless the user specified otherwise during clarification.
+    - Define: auth_strategy (string), roles[] (list of role names),
+      permissions_matrix{role: {resource: [actions]}},
+      premium_plan_gates{plan_name: {features: [], restrictions: []}},
+      token_config{expiry_seconds, refresh_expiry_seconds, algorithm}.
+    - Every role referenced anywhere in UISchema or APISchema MUST exist in roles[].
+    - Every resource in permissions_matrix MUST correspond to a DB table.
+
+    Respond only with valid JSON. No prose, no markdown fences, no explanation.
+  expected_output: >
+    Valid AuthSchema JSON with fields:
+    auth_strategy (string: "jwt" or "session" or "oauth2"),
+    roles (array of strings),
+    permissions_matrix (object: role -> resource -> array of action strings),
+    premium_plan_gates (object: plan_name -> object with features array and restrictions array),
+    token_config (object with expiry_seconds, refresh_expiry_seconds, algorithm).
+  agent: auth_agent
+  async_execution: true
+
+task_validate_schemas:
+  description: >
+    Run cross-layer consistency validation across DB, API, UI, and Auth schemas.
+    
+    User Prompt: {user_prompt}
+    All Schemas: {all_schemas}
+
+    ANTI-HALLUCINATION RULE (check this FIRST before all others):
+    Every error you report MUST reference a table name, column name, endpoint path, or page path
+    that LITERALLY EXISTS in the all_schemas JSON above. Do NOT invent or assume the existence of
+    any table, column, endpoint, or field that is not explicitly present in the provided schemas.
+    If you cannot find it in the JSON, do not report an error about it.
+
+    Check: 1) API fields match DB columns 2) UI forms map to API inputs 3) Roles in UI/API exist in Auth
+    4) Protected endpoints have Auth permissions 5) Every Architecture entity has a DB table
+    6) Every table has API endpoints 7) Premium gating matches business rules 8) No circular deps
+    9) No orphans 10) Required fields (id, created_at, updated_at) exist 11) FK references are valid.
+
+    Output: is_valid (bool), errors[], warnings[], conflicts[], validated_at.
+    CRITICAL RULE: is_valid MUST be false if errors[] is non-empty. is_valid MUST be true ONLY if errors[] is empty.
+    Respond only with valid JSON.
+  expected_output: >
+    Valid ValidationReport JSON: is_valid (bool — false if ANY errors, true only if errors=[]),
+    errors [{layer,field,description}], warnings [{layer,field,description}],
+    conflicts [{description,resolution_strategy}], validated_at (ISO timestamp).
+  agent: validator_agent
+  context:
+    - task_generate_db_schema
+    - task_generate_api_schema
+    - task_generate_ui_schema
+    - task_generate_auth_schema
+  async_execution: false
+
+task_repair_schemas:
+  description: >
+    Fix SPECIFIC errors from the ValidationReport by making targeted patches to the existing schemas.
+    
+    User Prompt: {user_prompt}
+    Repair Attempt Number: {repair_attempt_number}
+
+    IMPORTANT — the schemas below are the FULL current schemas, NOT empty.
+    Do NOT generate new schemas from scratch. Only make surgical patches to fix the listed errors.
+
+    Current All Schemas (full detail): {all_schemas}
+    Validation Report (errors to fix): {validation_report}
+
+    For each error in validation_report.errors:
+      - Identify which layer needs changing (DB, API, or UI)
+      - Make the smallest targeted change to fix that specific error
+      - Record before/after in repairs[]
+
+    ANTI-HALLUCINATION RULE: Before attempting to fix each error, verify that the table/column/endpoint
+    referenced in the error ACTUALLY EXISTS in the all_schemas JSON. If it does NOT exist
+    (the validator made a mistake), add it to unresolved_errors with a note:
+    "Skipped: referenced table/field not found in schema — likely validator hallucination."
+    Do NOT invent new tables or columns to fix ghost errors.
+
+    CRITICAL — updated_schemas format MUST be:
+    {
+      "updated_schemas": {
+        "db_schema": { ...full updated db_schema... },
+        "api_schema": { ...full updated api_schema... }
+      }
+    }
+    Only include layers you actually changed. Keys MUST be "db_schema", "api_schema", "ui_schema", or "auth_schema".
+    DO NOT use a key called "schema". DO NOT return OpenAPI JSON Schema format.
+    Return the complete updated layer(s), not just the changed fields.
+
+    Respond only with valid JSON.
+  expected_output: >
+    Valid RepairReport JSON: repairs [{error_description, layer_fixed, field_fixed, before, after}],
+    updated_schemas {db_schema?: full_schema, api_schema?: full_schema, ui_schema?: full_schema, auth_schema?: full_schema},
+    repair_attempt_number (int), unresolved_errors [strings].
+  agent: repair_agent
+  context:
+    - task_validate_schemas
+  async_execution: false
+
+task_validate_runtime:
+  description: >
+    Simulate execution of the validated schema set.
+    
+    User Prompt: {user_prompt}
+    All Schemas: {all_schemas}
+
+    Verify: 1) API endpoints reference existing DB tables/columns 2) UI components have mapped API calls 3) Auth-protected routes have matching permissions.
+    Simulate CRUD flow for the primary entity: CREATE (form→POST→INSERT), READ (list→GET→SELECT), UPDATE (edit→PUT→UPDATE), DELETE (button→DELETE→soft-delete).
+    
+    CRITICAL JSON FORMATTING:
+    Respond ONLY with a single valid JSON object. Do NOT wrap the JSON in a markdown code block.
+  expected_output: >
+    Valid JSON object with exact keys: "execution_viable" (bool), "simulated_flows" [{name,steps[],result}], "blocking_issues" [strings], "warnings" [strings].
+  agent: runtime_validator
+  context:
+    - task_validate_schemas
+    - task_repair_schemas
+  async_execution: false
+
+task_log_progress:
+  description: >
+    Generate pipeline log and Mermaid diagrams after all stages complete.
+    
+    User Prompt: {user_prompt}
+    Session ID: {session_id}
+    Stage Latencies: {stage_latencies}
+    Repairs: {repair_count}  HITL rounds: {hitl_count}
+
+    DB Outline (table names + relations): {db_outline}
+    API Outline (endpoint paths + methods): {api_outline}
+
+    Create log entries with: stage name, latency, assumptions, conflicts, repair triggers.
+
+    Generate 3 valid Mermaid diagrams:
+
+    1) mermaid_pipeline: Flowchart using "flowchart TD" showing stage order with latencies.
+       - Edge syntax: A -->|4235ms| B   (NO trailing > after the closing pipe)
+       - ✅ Correct: A -->|4235ms| B
+       - ❌ Wrong:   A -->|4235ms|> B
+       - Use style keyword freely in flowcharts.
+
+    2) mermaid_er: ER diagram using "erDiagram" syntax.
+       - DO NOT use the "style" keyword — erDiagram does not support it.
+       - Only use entity blocks and relationship lines.
+
+    3) mermaid_sequence: Sequence diagram using "sequenceDiagram" syntax.
+       - DO NOT use the "style" keyword — sequenceDiagram does not support it.
+       - Only use participant, ->> and -->> arrow syntax.
+
+    Apply the ProtoFlow theme via the init directive:
+    %%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#2a2520', 'primaryTextColor': '#f7f6f3', 'primaryBorderColor': '#e86d2a', 'lineColor': '#ef8a52'}}}%%
+
+    CRITICAL JSON FORMATTING:
+    Respond ONLY with a single valid JSON object. Do NOT wrap the JSON in a markdown code block.
+    For the Mermaid graphs, you MUST escape all newlines as \\n within the JSON strings to prevent parsing errors.
+
+  expected_output: >
+    Valid JSON object with exact keys: "log_entries" (array of objects), "mermaid_pipeline" (string), "mermaid_er" (string), "mermaid_sequence" (string).
+  agent: progress_logger
+  context:
+    - task_validate_runtime
+  async_execution: true
+
+
+
+task_generate_workflow_stubs:
+  description: >
+    Enrich the provided workflow stub skeletons with precise trigger conditions,
+    payload field mappings, and human-readable descriptions.
+
+    Integration Registry (valid IDs and actions): {integration_registry}
+    Stub Skeletons (deterministically generated): {stub_skeletons}
+    Entity Schemas (DB tables and columns): {entity_schemas}
+    User Prompt: {user_prompt}
+
+    For each stub skeleton:
+    1. Set trigger.condition — a concrete filter expression using entity field names.
+       Example: "status == 'closed'" or "due_date < now() AND status != 'completed'"
+       Use null if no condition is needed (e.g. trigger on every creation).
+    2. Set payload_mapping — map entity field names to action input field names.
+       Format: { "entity.field_name": "action_input_field_name" }
+       Only use fields that exist in the entity schema. Only map to fields in the action input_schema.
+    3. Set description — one sentence explaining what this workflow does and why.
+
+    CRITICAL RULES:
+    - Do NOT change integration_id or action_id. They are already validated.
+    - Do NOT invent entity fields. Only use fields present in entity_schemas.
+    - Do NOT change the trigger.entity or trigger.event. Only add trigger.condition.
+    - Return ONLY the enriched stubs array. No prose, no markdown, no explanation.
+    - If you cannot determine a meaningful condition or mapping, use null/empty dict.
+
+    Respond only with valid JSON array of WorkflowStub objects.
+
+  expected_output: >
+    A valid JSON array of enriched WorkflowStub objects. Each object must have:
+    name (string), trigger (object with entity, event, condition),
+    integration_id (string), action_id (string),
+    payload_mapping (object), description (string), is_valid (bool, always true).
+  agent: integration_agent
+  async_execution: false

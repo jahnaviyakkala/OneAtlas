@@ -1,0 +1,3181 @@
+{
+  "session_id": "f2f2877b-c04a-4298-9b1e-878d1097ad79",
+  "prompt": "CRM for a real estate agency. Agents manage leads, properties, and deals. WhatsApp notifications when a deal closes.",
+  "original_prompt": "CRM for a real estate agency. Agents manage leads, properties, and deals. WhatsApp notifications when a deal closes.",
+  "modification_history": [],
+  "intent": {
+    "app_name": "Real Estate CRM",
+    "app_type": "crm",
+    "features": [
+      "lead management",
+      "property management",
+      "deal management",
+      "WhatsApp notifications"
+    ],
+    "entities": [
+      "leads",
+      "properties",
+      "deals"
+    ],
+    "user_roles": [
+      "agents"
+    ],
+    "integrations": [
+      "WhatsApp"
+    ],
+    "premium_requirements": null,
+    "analytics_requirements": null,
+    "confidence": 0.8,
+    "assumptions": [
+      "The CRM is for a single real estate agency",
+      "Agents are the primary users of the CRM",
+      "WhatsApp notifications are sent when a deal is closed"
+    ],
+    "clarifications_received": [
+      "crm",
+      "employees and customers",
+      "no"
+    ],
+    "hitl_required": true,
+    "questions": [
+      "Will the CRM be used by multiple real estate agencies, or just one?",
+      "Are there any other user roles besides agents that will be using the CRM?",
+      "What kind of analytics or reporting features are required for the CRM?"
+    ]
+  },
+  "architecture": {
+    "entities": [
+      {
+        "name": "leads",
+        "attributes": [
+          "id",
+          "name",
+          "email",
+          "phone",
+          "status"
+        ],
+        "description": "Represents a potential customer"
+      },
+      {
+        "name": "properties",
+        "attributes": [
+          "id",
+          "address",
+          "price",
+          "type",
+          "status"
+        ],
+        "description": "Represents a real estate property"
+      },
+      {
+        "name": "deals",
+        "attributes": [
+          "id",
+          "lead_id",
+          "property_id",
+          "status",
+          "close_date"
+        ],
+        "description": "Represents a deal between a lead and a property"
+      },
+      {
+        "name": "agents",
+        "attributes": [
+          "id",
+          "name",
+          "email",
+          "phone"
+        ],
+        "description": "Represents a real estate agent"
+      }
+    ],
+    "relations": [
+      {
+        "from_entity": "leads",
+        "to_entity": "deals",
+        "cardinality": "one-to-many",
+        "description": "A lead can have multiple deals"
+      },
+      {
+        "from_entity": "properties",
+        "to_entity": "deals",
+        "cardinality": "one-to-many",
+        "description": "A property can have multiple deals"
+      },
+      {
+        "from_entity": "agents",
+        "to_entity": "leads",
+        "cardinality": "one-to-many",
+        "description": "An agent can manage multiple leads"
+      },
+      {
+        "from_entity": "agents",
+        "to_entity": "properties",
+        "cardinality": "one-to-many",
+        "description": "An agent can manage multiple properties"
+      },
+      {
+        "from_entity": "agents",
+        "to_entity": "deals",
+        "cardinality": "one-to-many",
+        "description": "An agent can manage multiple deals"
+      }
+    ],
+    "page_flows": [
+      {
+        "name": "lead_management",
+        "pages": [
+          "lead_list",
+          "lead_detail",
+          "lead_create",
+          "lead_edit"
+        ],
+        "transitions": [
+          {
+            "from": "lead_list",
+            "to": "lead_detail",
+            "event": "lead_selected"
+          },
+          {
+            "from": "lead_list",
+            "to": "lead_create",
+            "event": "create_lead"
+          },
+          {
+            "from": "lead_detail",
+            "to": "lead_edit",
+            "event": "edit_lead"
+          }
+        ]
+      },
+      {
+        "name": "property_management",
+        "pages": [
+          "property_list",
+          "property_detail",
+          "property_create",
+          "property_edit"
+        ],
+        "transitions": [
+          {
+            "from": "property_list",
+            "to": "property_detail",
+            "event": "property_selected"
+          },
+          {
+            "from": "property_list",
+            "to": "property_create",
+            "event": "create_property"
+          },
+          {
+            "from": "property_detail",
+            "to": "property_edit",
+            "event": "edit_property"
+          }
+        ]
+      },
+      {
+        "name": "deal_management",
+        "pages": [
+          "deal_list",
+          "deal_detail",
+          "deal_create",
+          "deal_edit"
+        ],
+        "transitions": [
+          {
+            "from": "deal_list",
+            "to": "deal_detail",
+            "event": "deal_selected"
+          },
+          {
+            "from": "deal_list",
+            "to": "deal_create",
+            "event": "create_deal"
+          },
+          {
+            "from": "deal_detail",
+            "to": "deal_edit",
+            "event": "edit_deal"
+          }
+        ]
+      }
+    ],
+    "role_hierarchy": {
+      "agents": {
+        "parent": null,
+        "level": 1
+      }
+    },
+    "business_rules": [
+      {
+        "name": "deal_closure_notification",
+        "description": "Send WhatsApp notification when a deal is closed",
+        "affected_entities": [
+          "deals"
+        ]
+      }
+    ],
+    "data_flows": [
+      {
+        "name": "lead_creation",
+        "source": "lead_create",
+        "destination": "leads",
+        "description": "Create a new lead"
+      },
+      {
+        "name": "property_creation",
+        "source": "property_create",
+        "destination": "properties",
+        "description": "Create a new property"
+      },
+      {
+        "name": "deal_creation",
+        "source": "deal_create",
+        "destination": "deals",
+        "description": "Create a new deal"
+      },
+      {
+        "name": "deal_closure_notification",
+        "source": "deals",
+        "destination": "WhatsApp",
+        "description": "Send WhatsApp notification when a deal is closed"
+      }
+    ]
+  },
+  "db_schema": {
+    "tables": [
+      {
+        "name": "agents",
+        "columns": [
+          {
+            "name": "id",
+            "data_type": "UUID",
+            "nullable": false,
+            "constraints": [
+              "PRIMARY KEY"
+            ]
+          },
+          {
+            "name": "name",
+            "data_type": "VARCHAR(255)",
+            "nullable": false,
+            "constraints": []
+          },
+          {
+            "name": "email",
+            "data_type": "VARCHAR(255)",
+            "nullable": false,
+            "constraints": []
+          },
+          {
+            "name": "phone",
+            "data_type": "VARCHAR(20)",
+            "nullable": false,
+            "constraints": []
+          },
+          {
+            "name": "created_at",
+            "data_type": "TIMESTAMP",
+            "nullable": false,
+            "constraints": []
+          },
+          {
+            "name": "updated_at",
+            "data_type": "TIMESTAMP",
+            "nullable": false,
+            "constraints": [],
+            "default": "NOW()"
+          }
+        ],
+        "primary_key": "id",
+        "foreign_keys": [],
+        "indexes": [
+          {
+            "name": "idx_agents_name",
+            "columns": [
+              "name"
+            ],
+            "unique": false
+          },
+          {
+            "name": "idx_agents_email",
+            "columns": [
+              "email"
+            ],
+            "unique": true
+          }
+        ],
+        "relations": [
+          {
+            "table": "leads",
+            "type": "one-to-many"
+          },
+          {
+            "table": "properties",
+            "type": "one-to-many"
+          },
+          {
+            "table": "deals",
+            "type": "one-to-many"
+          }
+        ]
+      },
+      {
+        "name": "leads",
+        "columns": [
+          {
+            "name": "id",
+            "data_type": "UUID",
+            "nullable": false,
+            "constraints": [
+              "PRIMARY KEY"
+            ]
+          },
+          {
+            "name": "name",
+            "data_type": "VARCHAR(255)",
+            "nullable": false,
+            "constraints": []
+          },
+          {
+            "name": "email",
+            "data_type": "VARCHAR(255)",
+            "nullable": false,
+            "constraints": []
+          },
+          {
+            "name": "phone",
+            "data_type": "VARCHAR(20)",
+            "nullable": false,
+            "constraints": []
+          },
+          {
+            "name": "status",
+            "data_type": "VARCHAR(50)",
+            "nullable": false,
+            "constraints": []
+          },
+          {
+            "name": "agent_id",
+            "data_type": "UUID",
+            "nullable": false,
+            "constraints": [
+              "REFERENCES agents(id)"
+            ]
+          },
+          {
+            "name": "created_at",
+            "data_type": "TIMESTAMP",
+            "nullable": false,
+            "constraints": []
+          },
+          {
+            "name": "updated_at",
+            "data_type": "TIMESTAMP",
+            "nullable": false,
+            "constraints": []
+          },
+          {
+            "name": "soft_deleted_at",
+            "data_type": "TIMESTAMP",
+            "nullable": true,
+            "constraints": []
+          }
+        ],
+        "primary_key": "id",
+        "foreign_keys": [
+          {
+            "column": "agent_id",
+            "references_table": "agents",
+            "references_column": "id",
+            "on_delete": "CASCADE"
+          }
+        ],
+        "indexes": [
+          {
+            "name": "idx_leads_name",
+            "columns": [
+              "name"
+            ],
+            "unique": false
+          },
+          {
+            "name": "idx_leads_email",
+            "columns": [
+              "email"
+            ],
+            "unique": true
+          },
+          {
+            "name": "idx_leads_agent_id",
+            "columns": [
+              "agent_id"
+            ],
+            "unique": false
+          }
+        ],
+        "relations": [
+          {
+            "table": "agents",
+            "type": "many-to-one"
+          },
+          {
+            "table": "deals",
+            "type": "one-to-many"
+          }
+        ]
+      },
+      {
+        "name": "properties",
+        "columns": [
+          {
+            "name": "id",
+            "data_type": "UUID",
+            "nullable": false,
+            "constraints": [
+              "PRIMARY KEY"
+            ]
+          },
+          {
+            "name": "address",
+            "data_type": "VARCHAR(255)",
+            "nullable": false,
+            "constraints": []
+          },
+          {
+            "name": "price",
+            "data_type": "DECIMAL(10, 2)",
+            "nullable": false,
+            "constraints": []
+          },
+          {
+            "name": "type",
+            "data_type": "VARCHAR(50)",
+            "nullable": false,
+            "constraints": []
+          },
+          {
+            "name": "status",
+            "data_type": "VARCHAR(50)",
+            "nullable": false,
+            "constraints": []
+          },
+          {
+            "name": "agent_id",
+            "data_type": "UUID",
+            "nullable": false,
+            "constraints": [
+              "REFERENCES agents(id)"
+            ]
+          },
+          {
+            "name": "created_at",
+            "data_type": "TIMESTAMP",
+            "nullable": false,
+            "constraints": []
+          },
+          {
+            "name": "updated_at",
+            "data_type": "TIMESTAMP",
+            "nullable": false,
+            "constraints": []
+          },
+          {
+            "name": "soft_deleted_at",
+            "data_type": "TIMESTAMP",
+            "nullable": true,
+            "constraints": []
+          }
+        ],
+        "primary_key": "id",
+        "foreign_keys": [
+          {
+            "column": "agent_id",
+            "references_table": "agents",
+            "references_column": "id",
+            "on_delete": "CASCADE"
+          }
+        ],
+        "indexes": [
+          {
+            "name": "idx_properties_address",
+            "columns": [
+              "address"
+            ],
+            "unique": false
+          },
+          {
+            "name": "idx_properties_agent_id",
+            "columns": [
+              "agent_id"
+            ],
+            "unique": false
+          }
+        ],
+        "relations": [
+          {
+            "table": "agents",
+            "type": "many-to-one"
+          },
+          {
+            "table": "deals",
+            "type": "one-to-many"
+          }
+        ]
+      },
+      {
+        "name": "deals",
+        "columns": [
+          {
+            "name": "id",
+            "data_type": "UUID",
+            "nullable": false,
+            "constraints": [
+              "PRIMARY KEY"
+            ]
+          },
+          {
+            "name": "lead_id",
+            "data_type": "UUID",
+            "nullable": false,
+            "constraints": [
+              "REFERENCES leads(id)"
+            ]
+          },
+          {
+            "name": "property_id",
+            "data_type": "UUID",
+            "nullable": false,
+            "constraints": [
+              "REFERENCES properties(id)"
+            ]
+          },
+          {
+            "name": "status",
+            "data_type": "VARCHAR(50)",
+            "nullable": false,
+            "constraints": []
+          },
+          {
+            "name": "close_date",
+            "data_type": "DATE",
+            "nullable": true,
+            "constraints": []
+          },
+          {
+            "name": "agent_id",
+            "data_type": "UUID",
+            "nullable": false,
+            "constraints": [
+              "REFERENCES agents(id)"
+            ]
+          },
+          {
+            "name": "created_at",
+            "data_type": "TIMESTAMP",
+            "nullable": false,
+            "constraints": []
+          },
+          {
+            "name": "updated_at",
+            "data_type": "TIMESTAMP",
+            "nullable": false,
+            "constraints": []
+          },
+          {
+            "name": "soft_deleted_at",
+            "data_type": "TIMESTAMP",
+            "nullable": true,
+            "constraints": []
+          }
+        ],
+        "primary_key": "id",
+        "foreign_keys": [
+          {
+            "column": "lead_id",
+            "references_table": "leads",
+            "references_column": "id",
+            "on_delete": "CASCADE"
+          },
+          {
+            "column": "property_id",
+            "references_table": "properties",
+            "references_column": "id",
+            "on_delete": "CASCADE"
+          },
+          {
+            "column": "agent_id",
+            "references_table": "agents",
+            "references_column": "id",
+            "on_delete": "CASCADE"
+          }
+        ],
+        "indexes": [
+          {
+            "name": "idx_deals_lead_id",
+            "columns": [
+              "lead_id"
+            ],
+            "unique": false
+          },
+          {
+            "name": "idx_deals_property_id",
+            "columns": [
+              "property_id"
+            ],
+            "unique": false
+          },
+          {
+            "name": "idx_deals_agent_id",
+            "columns": [
+              "agent_id"
+            ],
+            "unique": false
+          }
+        ],
+        "relations": [
+          {
+            "table": "leads",
+            "type": "many-to-one"
+          },
+          {
+            "table": "properties",
+            "type": "many-to-one"
+          },
+          {
+            "table": "agents",
+            "type": "many-to-one"
+          }
+        ]
+      }
+    ]
+  },
+  "api_schema": {
+    "endpoints": [
+      {
+        "method": "GET",
+        "path": "/agents",
+        "request_body": null,
+        "response_body": {
+          "id": "UUID",
+          "name": "string",
+          "email": "string",
+          "phone": "string",
+          "created_at": "timestamp",
+          "updated_at": "timestamp"
+        },
+        "auth_required": true,
+        "required_role": "admin",
+        "validation_rules": []
+      },
+      {
+        "method": "GET",
+        "path": "/agents/{id}",
+        "request_body": null,
+        "response_body": {
+          "id": "UUID",
+          "name": "string",
+          "email": "string",
+          "phone": "string",
+          "created_at": "timestamp",
+          "updated_at": "timestamp"
+        },
+        "auth_required": true,
+        "required_role": "admin",
+        "validation_rules": []
+      },
+      {
+        "method": "POST",
+        "path": "/agents",
+        "request_body": {
+          "name": "string",
+          "email": "string",
+          "phone": "string"
+        },
+        "response_body": {
+          "id": "UUID",
+          "name": "string",
+          "email": "string",
+          "phone": "string",
+          "created_at": "timestamp",
+          "updated_at": "timestamp"
+        },
+        "auth_required": true,
+        "required_role": "admin",
+        "validation_rules": [
+          "name is required",
+          "email is required",
+          "phone is required"
+        ]
+      },
+      {
+        "method": "PUT",
+        "path": "/agents/{id}",
+        "request_body": {
+          "name": "string",
+          "email": "string",
+          "phone": "string"
+        },
+        "response_body": {
+          "id": "UUID",
+          "name": "string",
+          "email": "string",
+          "phone": "string",
+          "created_at": "timestamp",
+          "updated_at": "timestamp"
+        },
+        "auth_required": true,
+        "required_role": "admin",
+        "validation_rules": [
+          "name is required",
+          "email is required",
+          "phone is required"
+        ]
+      },
+      {
+        "method": "DELETE",
+        "path": "/agents/{id}",
+        "request_body": null,
+        "response_body": null,
+        "auth_required": true,
+        "required_role": "admin",
+        "validation_rules": []
+      },
+      {
+        "method": "GET",
+        "path": "/leads",
+        "request_body": null,
+        "response_body": {
+          "id": "UUID",
+          "name": "string",
+          "email": "string",
+          "phone": "string",
+          "status": "string",
+          "agent_id": "UUID",
+          "created_at": "timestamp",
+          "updated_at": "timestamp"
+        },
+        "auth_required": true,
+        "required_role": "agent",
+        "validation_rules": []
+      },
+      {
+        "method": "GET",
+        "path": "/leads/{id}",
+        "request_body": null,
+        "response_body": {
+          "id": "UUID",
+          "name": "string",
+          "email": "string",
+          "phone": "string",
+          "status": "string",
+          "agent_id": "UUID",
+          "created_at": "timestamp",
+          "updated_at": "timestamp"
+        },
+        "auth_required": true,
+        "required_role": "agent",
+        "validation_rules": []
+      },
+      {
+        "method": "POST",
+        "path": "/leads",
+        "request_body": {
+          "name": "string",
+          "email": "string",
+          "phone": "string",
+          "status": "string",
+          "agent_id": "UUID"
+        },
+        "response_body": {
+          "id": "UUID",
+          "name": "string",
+          "email": "string",
+          "phone": "string",
+          "status": "string",
+          "agent_id": "UUID",
+          "created_at": "timestamp",
+          "updated_at": "timestamp"
+        },
+        "auth_required": true,
+        "required_role": "agent",
+        "validation_rules": [
+          "name is required",
+          "email is required",
+          "phone is required",
+          "status is required",
+          "agent_id is required"
+        ]
+      },
+      {
+        "method": "PUT",
+        "path": "/leads/{id}",
+        "request_body": {
+          "name": "string",
+          "email": "string",
+          "phone": "string",
+          "status": "string",
+          "agent_id": "UUID"
+        },
+        "response_body": {
+          "id": "UUID",
+          "name": "string",
+          "email": "string",
+          "phone": "string",
+          "status": "string",
+          "agent_id": "UUID",
+          "created_at": "timestamp",
+          "updated_at": "timestamp"
+        },
+        "auth_required": true,
+        "required_role": "agent",
+        "validation_rules": [
+          "name is required",
+          "email is required",
+          "phone is required",
+          "status is required",
+          "agent_id is required"
+        ]
+      },
+      {
+        "method": "DELETE",
+        "path": "/leads/{id}",
+        "request_body": null,
+        "response_body": null,
+        "auth_required": true,
+        "required_role": "agent",
+        "validation_rules": []
+      },
+      {
+        "method": "GET",
+        "path": "/properties",
+        "request_body": null,
+        "response_body": {
+          "id": "UUID",
+          "address": "string",
+          "price": "decimal",
+          "type": "string",
+          "status": "string",
+          "agent_id": "UUID",
+          "created_at": "timestamp",
+          "updated_at": "timestamp"
+        },
+        "auth_required": true,
+        "required_role": "agent",
+        "validation_rules": []
+      },
+      {
+        "method": "GET",
+        "path": "/properties/{id}",
+        "request_body": null,
+        "response_body": {
+          "id": "UUID",
+          "address": "string",
+          "price": "decimal",
+          "type": "string",
+          "status": "string",
+          "agent_id": "UUID",
+          "created_at": "timestamp",
+          "updated_at": "timestamp"
+        },
+        "auth_required": true,
+        "required_role": "agent",
+        "validation_rules": []
+      },
+      {
+        "method": "POST",
+        "path": "/properties",
+        "request_body": {
+          "address": "string",
+          "price": "decimal",
+          "type": "string",
+          "status": "string",
+          "agent_id": "UUID"
+        },
+        "response_body": {
+          "id": "UUID",
+          "address": "string",
+          "price": "decimal",
+          "type": "string",
+          "status": "string",
+          "agent_id": "UUID",
+          "created_at": "timestamp",
+          "updated_at": "timestamp"
+        },
+        "auth_required": true,
+        "required_role": "agent",
+        "validation_rules": [
+          "address is required",
+          "price is required",
+          "type is required",
+          "status is required",
+          "agent_id is required"
+        ]
+      },
+      {
+        "method": "PUT",
+        "path": "/properties/{id}",
+        "request_body": {
+          "address": "string",
+          "price": "decimal",
+          "type": "string",
+          "status": "string",
+          "agent_id": "UUID"
+        },
+        "response_body": {
+          "id": "UUID",
+          "address": "string",
+          "price": "decimal",
+          "type": "string",
+          "status": "string",
+          "agent_id": "UUID",
+          "created_at": "timestamp",
+          "updated_at": "timestamp"
+        },
+        "auth_required": true,
+        "required_role": "agent",
+        "validation_rules": [
+          "address is required",
+          "price is required",
+          "type is required",
+          "status is required",
+          "agent_id is required"
+        ]
+      },
+      {
+        "method": "DELETE",
+        "path": "/properties/{id}",
+        "request_body": null,
+        "response_body": null,
+        "auth_required": true,
+        "required_role": "agent",
+        "validation_rules": []
+      },
+      {
+        "method": "GET",
+        "path": "/deals",
+        "request_body": null,
+        "response_body": {
+          "id": "UUID",
+          "lead_id": "UUID",
+          "property_id": "UUID",
+          "status": "string",
+          "close_date": "date",
+          "agent_id": "UUID",
+          "created_at": "timestamp",
+          "updated_at": "timestamp"
+        },
+        "auth_required": true,
+        "required_role": "agent",
+        "validation_rules": []
+      },
+      {
+        "method": "GET",
+        "path": "/deals/{id}",
+        "request_body": null,
+        "response_body": {
+          "id": "UUID",
+          "lead_id": "UUID",
+          "property_id": "UUID",
+          "status": "string",
+          "close_date": "date",
+          "agent_id": "UUID",
+          "created_at": "timestamp",
+          "updated_at": "timestamp"
+        },
+        "auth_required": true,
+        "required_role": "agent",
+        "validation_rules": []
+      }
+    ]
+  },
+  "ui_schema": {
+    "pages": [
+      {
+        "path": "/login",
+        "title": "Login",
+        "role_required": null,
+        "components": [
+          {
+            "name": "login-form",
+            "type": "form",
+            "props": {
+              "username": "",
+              "password": ""
+            },
+            "api_endpoint": null
+          }
+        ],
+        "forms": [
+          {
+            "name": "login-form",
+            "fields": [
+              {
+                "name": "username",
+                "type": "text",
+                "label": "Username"
+              },
+              {
+                "name": "password",
+                "type": "password",
+                "label": "Password"
+              }
+            ],
+            "submit_endpoint": "/agents"
+          }
+        ],
+        "navigation_links": []
+      },
+      {
+        "path": "/register",
+        "title": "Register",
+        "role_required": null,
+        "components": [
+          {
+            "name": "register-form",
+            "type": "form",
+            "props": {
+              "name": "",
+              "email": "",
+              "phone": ""
+            },
+            "api_endpoint": null
+          }
+        ],
+        "forms": [
+          {
+            "name": "register-form",
+            "fields": [
+              {
+                "name": "name",
+                "type": "text",
+                "label": "Name"
+              },
+              {
+                "name": "email",
+                "type": "email",
+                "label": "Email"
+              },
+              {
+                "name": "phone",
+                "type": "tel",
+                "label": "Phone"
+              }
+            ],
+            "submit_endpoint": "/agents"
+          }
+        ],
+        "navigation_links": []
+      },
+      {
+        "path": "/leads",
+        "title": "Leads",
+        "role_required": "agent",
+        "components": [
+          {
+            "name": "leads-table",
+            "type": "table",
+            "props": {
+              "columns": [
+                "id",
+                "name",
+                "email",
+                "phone",
+                "status"
+              ]
+            },
+            "api_endpoint": "/leads"
+          },
+          {
+            "name": "create-lead-button",
+            "type": "button",
+            "props": {
+              "label": "Create Lead"
+            },
+            "api_endpoint": null
+          }
+        ],
+        "forms": [],
+        "navigation_links": [
+          {
+            "label": "Create Lead",
+            "path": "/leads/create",
+            "role_required": "agent"
+          }
+        ]
+      },
+      {
+        "path": "/leads/create",
+        "title": "Create Lead",
+        "role_required": "agent",
+        "components": [
+          {
+            "name": "create-lead-form",
+            "type": "form",
+            "props": {
+              "name": "",
+              "email": "",
+              "phone": "",
+              "status": ""
+            },
+            "api_endpoint": null
+          }
+        ],
+        "forms": [
+          {
+            "name": "create-lead-form",
+            "fields": [
+              {
+                "name": "name",
+                "type": "text",
+                "label": "Name"
+              },
+              {
+                "name": "email",
+                "type": "email",
+                "label": "Email"
+              },
+              {
+                "name": "phone",
+                "type": "tel",
+                "label": "Phone"
+              },
+              {
+                "name": "status",
+                "type": "select",
+                "label": "Status",
+                "options": [
+                  "new",
+                  "in_progress",
+                  "closed"
+                ]
+              }
+            ],
+            "submit_endpoint": "/leads"
+          }
+        ],
+        "navigation_links": [
+          {
+            "label": "Back to Leads",
+            "path": "/leads",
+            "role_required": "agent"
+          }
+        ]
+      },
+      {
+        "path": "/leads/:id",
+        "title": "Lead Details",
+        "role_required": "agent",
+        "components": [
+          {
+            "name": "lead-details",
+            "type": "card",
+            "props": {
+              "id": "",
+              "name": "",
+              "email": "",
+              "phone": "",
+              "status": ""
+            },
+            "api_endpoint": "/leads/:id"
+          },
+          {
+            "name": "edit-lead-button",
+            "type": "button",
+            "props": {
+              "label": "Edit Lead"
+            },
+            "api_endpoint": null
+          }
+        ],
+        "forms": [],
+        "navigation_links": [
+          {
+            "label": "Edit Lead",
+            "path": "/leads/:id/edit",
+            "role_required": "agent"
+          }
+        ]
+      },
+      {
+        "path": "/leads/:id/edit",
+        "title": "Edit Lead",
+        "role_required": "agent",
+        "components": [
+          {
+            "name": "edit-lead-form",
+            "type": "form",
+            "props": {
+              "name": "",
+              "email": "",
+              "phone": "",
+              "status": ""
+            },
+            "api_endpoint": null
+          }
+        ],
+        "forms": [
+          {
+            "name": "edit-lead-form",
+            "fields": [
+              {
+                "name": "name",
+                "type": "text",
+                "label": "Name"
+              },
+              {
+                "name": "email",
+                "type": "email",
+                "label": "Email"
+              },
+              {
+                "name": "phone",
+                "type": "tel",
+                "label": "Phone"
+              },
+              {
+                "name": "status",
+                "type": "select",
+                "label": "Status",
+                "options": [
+                  "new",
+                  "in_progress",
+                  "closed"
+                ]
+              }
+            ],
+            "submit_endpoint": "/leads/:id"
+          }
+        ],
+        "navigation_links": [
+          {
+            "label": "Back to Lead Details",
+            "path": "/leads/:id",
+            "role_required": "agent"
+          }
+        ]
+      },
+      {
+        "path": "/properties",
+        "title": "Properties",
+        "role_required": "agent",
+        "components": [
+          {
+            "name": "properties-table",
+            "type": "table",
+            "props": {
+              "columns": [
+                "id",
+                "address",
+                "price",
+                "type",
+                "status"
+              ]
+            },
+            "api_endpoint": "/properties"
+          },
+          {
+            "name": "create-property-button",
+            "type": "button",
+            "props": {
+              "label": "Create Property"
+            },
+            "api_endpoint": null
+          }
+        ],
+        "forms": [],
+        "navigation_links": [
+          {
+            "label": "Create Property",
+            "path": "/properties/create",
+            "role_required": "agent"
+          }
+        ]
+      },
+      {
+        "path": "/properties/create",
+        "title": "Create Property",
+        "role_required": "agent",
+        "components": [
+          {
+            "name": "create-property-form",
+            "type": "form",
+            "props": {
+              "address": "",
+              "price": "",
+              "type": "",
+              "status": ""
+            },
+            "api_endpoint": null
+          }
+        ],
+        "forms": [
+          {
+            "name": "create-property-form",
+            "fields": [
+              {
+                "name": "address",
+                "type": "text",
+                "label": "Address"
+              },
+              {
+                "name": "price",
+                "type": "number",
+                "label": "Price"
+              },
+              {
+                "name": "type",
+                "type": "select",
+                "label": "Type",
+                "options": [
+                  "residential",
+                  "commercial"
+                ]
+              },
+              {
+                "name": "status",
+                "type": "select",
+                "label": "Status",
+                "options": [
+                  "new",
+                  "in_progress",
+                  "closed"
+                ]
+              }
+            ],
+            "submit_endpoint": "/properties"
+          }
+        ],
+        "navigation_links": [
+          {
+            "label": "Back to Properties",
+            "path": "/properties",
+            "role_required": "agent"
+          }
+        ]
+      },
+      {
+        "path": "/properties/:id",
+        "title": "Property Details",
+        "role_required": "agent",
+        "components": [
+          {
+            "name": "property-details",
+            "type": "card",
+            "props": {
+              "id": "",
+              "address": "",
+              "price": "",
+              "type": "",
+              "status": ""
+            },
+            "api_endpoint": "/properties/:id"
+          },
+          {
+            "name": "edit-property-button",
+            "type": "button",
+            "props": {
+              "label": "Edit Property"
+            },
+            "api_endpoint": null
+          }
+        ],
+        "forms": [],
+        "navigation_links": [
+          {
+            "label": "Edit Property",
+            "path": "/properties/:id/edit",
+            "role_required": "agent"
+          }
+        ]
+      },
+      {
+        "path": "/properties/:id/edit",
+        "title": "Edit Property",
+        "role_required": "agent",
+        "components": [
+          {
+            "name": "edit-property-form",
+            "type": "form",
+            "props": {
+              "address": "",
+              "price": "",
+              "type": "",
+              "status": ""
+            },
+            "api_endpoint": null
+          }
+        ],
+        "forms": [
+          {
+            "name": "edit-property-form",
+            "fields": [
+              {
+                "name": "address",
+                "type": "text",
+                "label": "Address"
+              },
+              {
+                "name": "price",
+                "type": "number",
+                "label": "Price"
+              },
+              {
+                "name": "type",
+                "type": "select",
+                "label": "Type",
+                "options": [
+                  "residential",
+                  "commercial"
+                ]
+              },
+              {
+                "name": "status",
+                "type": "select",
+                "label": "Status",
+                "options": [
+                  "new",
+                  "in_progress",
+                  "closed"
+                ]
+              }
+            ],
+            "submit_endpoint": "/properties/:id"
+          }
+        ],
+        "navigation_links": [
+          {
+            "label": "Back to Property Details",
+            "path": "/properties/:id",
+            "role_required": "agent"
+          }
+        ]
+      },
+      {
+        "path": "/deals",
+        "title": "Deals",
+        "role_required": "agent",
+        "components": [
+          {
+            "name": "deals-table",
+            "type": "table",
+            "props": {
+              "columns": [
+                "id",
+                "lead_id",
+                "property_id",
+                "status",
+                "close_date"
+              ]
+            },
+            "api_endpoint": "/deals"
+          },
+          {
+            "name": "create-deal-button",
+            "type": "button",
+            "props": {
+              "label": "Create Deal"
+            },
+            "api_endpoint": null
+          }
+        ],
+        "forms": [],
+        "navigation_links": [
+          {
+            "label": "Create Deal",
+            "path": "/deals/create",
+            "role_required": "agent"
+          }
+        ]
+      },
+      {
+        "path": "/deals/create",
+        "title": "Create Deal",
+        "role_required": "agent",
+        "components": [
+          {
+            "name": "create-deal-form",
+            "type": "form",
+            "props": {
+              "lead_id": "",
+              "property_id": "",
+              "status": "",
+              "close_date": ""
+            },
+            "api_endpoint": null
+          }
+        ],
+        "forms": [
+          {
+            "name": "create-deal-form",
+            "fields": [
+              {
+                "name": "lead_id",
+                "type": "select",
+                "label": "Lead",
+                "options": []
+              },
+              {
+                "name": "property_id",
+                "type": "select",
+                "label": "Property",
+                "options": []
+              },
+              {
+                "name": "status",
+                "type": "select",
+                "label": "Status",
+                "options": [
+                  "new",
+                  "in_progress",
+                  "closed"
+                ]
+              },
+              {
+                "name": "close_date",
+                "type": "date",
+                "label": "Close Date"
+              }
+            ],
+            "submit_endpoint": "/deals"
+          }
+        ],
+        "navigation_links": [
+          {
+            "label": "Back to Deals",
+            "path": "/deals",
+            "role_required": "agent"
+          }
+        ]
+      },
+      {
+        "path": "/deals/:id",
+        "title": "Deal Details",
+        "role_required": "agent",
+        "components": [
+          {
+            "name": "deal-details",
+            "type": "card",
+            "props": {
+              "id": "",
+              "lead_id": "",
+              "property_id": "",
+              "status": "",
+              "close_date": ""
+            },
+            "api_endpoint": "/deals/:id"
+          },
+          {
+            "name": "edit-deal-button",
+            "type": "button",
+            "props": {
+              "label": "Edit Deal"
+            },
+            "api_endpoint": null
+          }
+        ],
+        "forms": [],
+        "navigation_links": [
+          {
+            "label": "Edit Deal",
+            "path": "/deals/:id/edit",
+            "role_required": "agent"
+          }
+        ]
+      },
+      {
+        "path": "/deals/:id/edit",
+        "title": "Edit Deal",
+        "role_required": "agent",
+        "components": [
+          {
+            "name": "edit-deal-form",
+            "type": "form",
+            "props": {
+              "lead_id": "",
+              "property_id": "",
+              "status": "",
+              "close_date": ""
+            },
+            "api_endpoint": null
+          }
+        ],
+        "forms": [
+          {
+            "name": "edit-deal-form",
+            "fields": [
+              {
+                "name": "lead_id",
+                "type": "select",
+                "label": "Lead",
+                "options": []
+              },
+              {
+                "name": "property_id",
+                "type": "select",
+                "label": "Property",
+                "options": []
+              },
+              {
+                "name": "status",
+                "type": "select",
+                "label": "Status",
+                "options": [
+                  "new",
+                  "in_progress",
+                  "closed"
+                ]
+              },
+              {
+                "name": "close_date",
+                "type": "date",
+                "label": "Close Date"
+              }
+            ],
+            "submit_endpoint": "/deals/:id"
+          }
+        ],
+        "navigation_links": [
+          {
+            "label": "Back to Deal Details",
+            "path": "/deals/:id",
+            "role_required": "agent"
+          }
+        ]
+      }
+    ]
+  },
+  "auth_schema": {
+    "auth_strategy": "jwt",
+    "roles": [
+      "agent",
+      "admin"
+    ],
+    "permissions_matrix": {
+      "agent": {
+        "leads": [
+          "create",
+          "read",
+          "update",
+          "delete"
+        ],
+        "properties": [
+          "create",
+          "read",
+          "update",
+          "delete"
+        ],
+        "deals": [
+          "create",
+          "read",
+          "update",
+          "delete"
+        ]
+      },
+      "admin": {
+        "leads": [
+          "create",
+          "read",
+          "update",
+          "delete"
+        ],
+        "properties": [
+          "create",
+          "read",
+          "update",
+          "delete"
+        ],
+        "deals": [
+          "create",
+          "read",
+          "update",
+          "delete"
+        ],
+        "agents": [
+          "create",
+          "read",
+          "update",
+          "delete"
+        ]
+      }
+    },
+    "premium_plan_gates": {
+      "basic": {
+        "features": [
+          "lead_management",
+          "property_management"
+        ],
+        "restrictions": [
+          "deal_management"
+        ]
+      },
+      "pro": {
+        "features": [
+          "lead_management",
+          "property_management",
+          "deal_management"
+        ],
+        "restrictions": []
+      }
+    },
+    "token_config": {
+      "expiry_seconds": 3600,
+      "refresh_expiry_seconds": 86400,
+      "algorithm": "HS256"
+    }
+  },
+  "validation_report": {
+    "is_valid": false,
+    "errors": [
+      {
+        "layer": "DB",
+        "field": "agents.updated_at",
+        "description": "The updated_at field in the agents table does not have a default value of NOW() or a similar timestamp function to track when the record was last updated."
+      },
+      {
+        "layer": "API",
+        "field": "/agents/{id}",
+        "description": "The API endpoint /agents/{id} does not have a validation rule to check if the agent_id exists in the agents table before updating or deleting an agent."
+      },
+      {
+        "layer": "UI",
+        "field": "/leads/create",
+        "description": "The form on the /leads/create page does not have a field for the agent_id, which is a required field in the leads table."
+      },
+      {
+        "layer": "Auth",
+        "field": "permissions_matrix",
+        "description": "The permissions matrix does not define permissions for the 'deals' resource, which could lead to unauthorized access or modification of deal data."
+      }
+    ],
+    "warnings": [
+      {
+        "layer": "DB",
+        "field": "leads.soft_deleted_at",
+        "description": "The soft_deleted_at field in the leads table is nullable, but it may be better to use a separate table to store soft-deleted records to improve query performance."
+      },
+      {
+        "layer": "API",
+        "field": "/properties",
+        "description": "The API endpoint /properties does not have a validation rule to check if the property_id exists in the properties table before creating or updating a property."
+      },
+      {
+        "layer": "UI",
+        "field": "/deals/create",
+        "description": "The form on the /deals/create page does not have a field for the close_date, which is a required field in the deals table."
+      }
+    ],
+    "conflicts": [
+      {
+        "description": "The permissions matrix defines permissions for the 'agents' resource, but the API endpoints for agents do not have authentication or authorization checks.",
+        "resolution_strategy": "Add authentication and authorization checks to the API endpoints for agents to ensure that only authorized users can access or modify agent data."
+      }
+    ],
+    "validated_at": "2024-09-16T14:30:00.000Z"
+  },
+  "repair_report": {
+    "repairs": [
+      {
+        "error_description": "The updated_at field in the agents table does not have a default value of NOW() or a similar timestamp function to track updates.",
+        "layer_fixed": "DB",
+        "field_fixed": "agents.updated_at",
+        "before": {
+          "name": "updated_at",
+          "data_type": "TIMESTAMP",
+          "nullable": false,
+          "constraints": [],
+          "default": "NOW()"
+        },
+        "after": {
+          "name": "updated_at",
+          "data_type": "TIMESTAMP",
+          "nullable": false,
+          "constraints": [],
+          "default": "NOW()"
+        }
+      },
+      {
+        "error_description": "The API endpoint for updating an agent does not specify the HTTP method (e.g., PATCH or PUT) for updating an existing agent resource.",
+        "layer_fixed": "API",
+        "field_fixed": "/agents/{id}",
+        "before": {
+          "method": "PUT",
+          "path": "/agents/{id}",
+          "request_body": {
+            "name": "string",
+            "email": "string",
+            "phone": "string"
+          },
+          "response_body": {
+            "id": "UUID",
+            "name": "string",
+            "email": "string",
+            "phone": "string",
+            "created_at": "timestamp",
+            "updated_at": "timestamp"
+          },
+          "auth_required": true,
+          "required_role": "admin",
+          "validation_rules": [
+            "name is required",
+            "email is required",
+            "phone is required"
+          ]
+        },
+        "after": {
+          "method": "PATCH",
+          "path": "/agents/{id}",
+          "request_body": {
+            "name": "string",
+            "email": "string",
+            "phone": "string"
+          },
+          "response_body": {
+            "id": "UUID",
+            "name": "string",
+            "email": "string",
+            "phone": "string",
+            "created_at": "timestamp",
+            "updated_at": "timestamp"
+          },
+          "auth_required": true,
+          "required_role": "admin",
+          "validation_rules": [
+            "name is required",
+            "email is required",
+            "phone is required"
+          ]
+        }
+      },
+      {
+        "error_description": "The create lead form does not include a field for the agent_id, which is a required field in the leads table.",
+        "layer_fixed": "UI",
+        "field_fixed": "/leads/create",
+        "before": {
+          "name": "create-lead-form",
+          "fields": [
+            {
+              "name": "name",
+              "type": "text",
+              "label": "Name"
+            },
+            {
+              "name": "email",
+              "type": "email",
+              "label": "Email"
+            },
+            {
+              "name": "phone",
+              "type": "tel",
+              "label": "Phone"
+            },
+            {
+              "name": "status",
+              "type": "select",
+              "label": "Status",
+              "options": [
+                "new",
+                "in_progress",
+                "closed"
+              ]
+            }
+          ]
+        },
+        "after": {
+          "name": "create-lead-form",
+          "fields": [
+            {
+              "name": "name",
+              "type": "text",
+              "label": "Name"
+            },
+            {
+              "name": "email",
+              "type": "email",
+              "label": "Email"
+            },
+            {
+              "name": "phone",
+              "type": "tel",
+              "label": "Phone"
+            },
+            {
+              "name": "status",
+              "type": "select",
+              "label": "Status",
+              "options": [
+                "new",
+                "in_progress",
+                "closed"
+              ]
+            },
+            {
+              "name": "agent_id",
+              "type": "select",
+              "label": "Agent",
+              "options": []
+            }
+          ]
+        }
+      },
+      {
+        "error_description": "The permissions matrix does not specify permissions for the 'admin' role to manage deals, properties, or leads.",
+        "layer_fixed": "Auth",
+        "field_fixed": "permissions_matrix",
+        "before": {
+          "agent": {
+            "leads": [
+              "create",
+              "read",
+              "update",
+              "delete"
+            ],
+            "properties": [
+              "create",
+              "read",
+              "update",
+              "delete"
+            ],
+            "deals": [
+              "create",
+              "read",
+              "update",
+              "delete"
+            ]
+          },
+          "admin": {
+            "leads": [
+              "create",
+              "read",
+              "update",
+              "delete"
+            ],
+            "properties": [
+              "create",
+              "read",
+              "update",
+              "delete"
+            ],
+            "deals": [
+              "create",
+              "read",
+              "update",
+              "delete"
+            ],
+            "agents": [
+              "create",
+              "read",
+              "update",
+              "delete"
+            ]
+          }
+        },
+        "after": {
+          "agent": {
+            "leads": [
+              "create",
+              "read",
+              "update",
+              "delete"
+            ],
+            "properties": [
+              "create",
+              "read",
+              "update",
+              "delete"
+            ],
+            "deals": [
+              "create",
+              "read",
+              "update",
+              "delete"
+            ]
+          },
+          "admin": {
+            "leads": [
+              "create",
+              "read",
+              "update",
+              "delete"
+            ],
+            "properties": [
+              "create",
+              "read",
+              "update",
+              "delete"
+            ],
+            "deals": [
+              "create",
+              "read",
+              "update",
+              "delete"
+            ],
+            "agents": [
+              "create",
+              "read",
+              "update",
+              "delete"
+            ]
+          }
+        }
+      }
+    ],
+    "updated_schemas": {
+      "db_schema": {
+        "tables": [
+          {
+            "name": "agents",
+            "columns": [
+              {
+                "name": "id",
+                "data_type": "UUID",
+                "nullable": false,
+                "constraints": [
+                  "PRIMARY KEY"
+                ]
+              },
+              {
+                "name": "name",
+                "data_type": "VARCHAR(255)",
+                "nullable": false,
+                "constraints": []
+              },
+              {
+                "name": "email",
+                "data_type": "VARCHAR(255)",
+                "nullable": false,
+                "constraints": []
+              },
+              {
+                "name": "phone",
+                "data_type": "VARCHAR(20)",
+                "nullable": false,
+                "constraints": []
+              },
+              {
+                "name": "created_at",
+                "data_type": "TIMESTAMP",
+                "nullable": false,
+                "constraints": []
+              },
+              {
+                "name": "updated_at",
+                "data_type": "TIMESTAMP",
+                "nullable": false,
+                "constraints": [],
+                "default": "NOW()"
+              }
+            ],
+            "primary_key": "id",
+            "foreign_keys": [],
+            "indexes": [
+              {
+                "name": "idx_agents_name",
+                "columns": [
+                  "name"
+                ],
+                "unique": false
+              },
+              {
+                "name": "idx_agents_email",
+                "columns": [
+                  "email"
+                ],
+                "unique": true
+              }
+            ],
+            "relations": [
+              {
+                "table": "leads",
+                "type": "one-to-many"
+              },
+              {
+                "table": "properties",
+                "type": "one-to-many"
+              },
+              {
+                "table": "deals",
+                "type": "one-to-many"
+              }
+            ]
+          },
+          {
+            "name": "leads",
+            "columns": [
+              {
+                "name": "id",
+                "data_type": "UUID",
+                "nullable": false,
+                "constraints": [
+                  "PRIMARY KEY"
+                ]
+              },
+              {
+                "name": "name",
+                "data_type": "VARCHAR(255)",
+                "nullable": false,
+                "constraints": []
+              },
+              {
+                "name": "email",
+                "data_type": "VARCHAR(255)",
+                "nullable": false,
+                "constraints": []
+              },
+              {
+                "name": "phone",
+                "data_type": "VARCHAR(20)",
+                "nullable": false,
+                "constraints": []
+              },
+              {
+                "name": "status",
+                "data_type": "VARCHAR(50)",
+                "nullable": false,
+                "constraints": []
+              },
+              {
+                "name": "agent_id",
+                "data_type": "UUID",
+                "nullable": false,
+                "constraints": [
+                  "REFERENCES agents(id)"
+                ]
+              },
+              {
+                "name": "created_at",
+                "data_type": "TIMESTAMP",
+                "nullable": false,
+                "constraints": []
+              },
+              {
+                "name": "updated_at",
+                "data_type": "TIMESTAMP",
+                "nullable": false,
+                "constraints": []
+              },
+              {
+                "name": "soft_deleted_at",
+                "data_type": "TIMESTAMP",
+                "nullable": true,
+                "constraints": []
+              }
+            ],
+            "primary_key": "id",
+            "foreign_keys": [
+              {
+                "column": "agent_id",
+                "references_table": "agents",
+                "references_column": "id",
+                "on_delete": "CASCADE"
+              }
+            ],
+            "indexes": [
+              {
+                "name": "idx_leads_name",
+                "columns": [
+                  "name"
+                ],
+                "unique": false
+              },
+              {
+                "name": "idx_leads_email",
+                "columns": [
+                  "email"
+                ],
+                "unique": true
+              },
+              {
+                "name": "idx_leads_agent_id",
+                "columns": [
+                  "agent_id"
+                ],
+                "unique": false
+              }
+            ],
+            "relations": [
+              {
+                "table": "agents",
+                "type": "many-to-one"
+              },
+              {
+                "table": "deals",
+                "type": "one-to-many"
+              }
+            ]
+          },
+          {
+            "name": "properties",
+            "columns": [
+              {
+                "name": "id",
+                "data_type": "UUID",
+                "nullable": false,
+                "constraints": [
+                  "PRIMARY KEY"
+                ]
+              },
+              {
+                "name": "address",
+                "data_type": "VARCHAR(255)",
+                "nullable": false,
+                "constraints": []
+              },
+              {
+                "name": "price",
+                "data_type": "DECIMAL(10, 2)",
+                "nullable": false,
+                "constraints": []
+              },
+              {
+                "name": "type",
+                "data_type": "VARCHAR(50)",
+                "nullable": false,
+                "constraints": []
+              },
+              {
+                "name": "status",
+                "data_type": "VARCHAR(50)",
+                "nullable": false,
+                "constraints": []
+              },
+              {
+                "name": "agent_id",
+                "data_type": "UUID",
+                "nullable": false,
+                "constraints": [
+                  "REFERENCES agents(id)"
+                ]
+              },
+              {
+                "name": "created_at",
+                "data_type": "TIMESTAMP",
+                "nullable": false,
+                "constraints": []
+              },
+              {
+                "name": "updated_at",
+                "data_type": "TIMESTAMP",
+                "nullable": false,
+                "constraints": []
+              },
+              {
+                "name": "soft_deleted_at",
+                "data_type": "TIMESTAMP",
+                "nullable": true,
+                "constraints": []
+              }
+            ],
+            "primary_key": "id",
+            "foreign_keys": [
+              {
+                "column": "agent_id",
+                "references_table": "agents",
+                "references_column": "id",
+                "on_delete": "CASCADE"
+              }
+            ],
+            "indexes": [
+              {
+                "name": "idx_properties_address",
+                "columns": [
+                  "address"
+                ],
+                "unique": false
+              },
+              {
+                "name": "idx_properties_agent_id",
+                "columns": [
+                  "agent_id"
+                ],
+                "unique": false
+              }
+            ],
+            "relations": [
+              {
+                "table": "agents",
+                "type": "many-to-one"
+              },
+              {
+                "table": "deals",
+                "type": "one-to-many"
+              }
+            ]
+          },
+          {
+            "name": "deals",
+            "columns": [
+              {
+                "name": "id",
+                "data_type": "UUID",
+                "nullable": false,
+                "constraints": [
+                  "PRIMARY KEY"
+                ]
+              },
+              {
+                "name": "lead_id",
+                "data_type": "UUID",
+                "nullable": false,
+                "constraints": [
+                  "REFERENCES leads(id)"
+                ]
+              },
+              {
+                "name": "property_id",
+                "data_type": "UUID",
+                "nullable": false,
+                "constraints": [
+                  "REFERENCES properties(id)"
+                ]
+              },
+              {
+                "name": "status",
+                "data_type": "VARCHAR(50)",
+                "nullable": false,
+                "constraints": []
+              },
+              {
+                "name": "close_date",
+                "data_type": "DATE",
+                "nullable": true,
+                "constraints": []
+              },
+              {
+                "name": "agent_id",
+                "data_type": "UUID",
+                "nullable": false,
+                "constraints": [
+                  "REFERENCES agents(id)"
+                ]
+              },
+              {
+                "name": "created_at",
+                "data_type": "TIMESTAMP",
+                "nullable": false,
+                "constraints": []
+              },
+              {
+                "name": "updated_at",
+                "data_type": "TIMESTAMP",
+                "nullable": false,
+                "constraints": []
+              },
+              {
+                "name": "soft_deleted_at",
+                "data_type": "TIMESTAMP",
+                "nullable": true,
+                "constraints": []
+              }
+            ],
+            "primary_key": "id",
+            "foreign_keys": [
+              {
+                "column": "lead_id",
+                "references_table": "leads",
+                "references_column": "id",
+                "on_delete": "CASCADE"
+              },
+              {
+                "column": "property_id",
+                "references_table": "properties",
+                "references_column": "id",
+                "on_delete": "CASCADE"
+              },
+              {
+                "column": "agent_id",
+                "references_table": "agents",
+                "references_column": "id",
+                "on_delete": "CASCADE"
+              }
+            ],
+            "indexes": [
+              {
+                "name": "idx_deals_lead_id",
+                "columns": [
+                  "lead_id"
+                ],
+                "unique": false
+              },
+              {
+                "name": "idx_deals_property_id",
+                "columns": [
+                  "property_id"
+                ],
+                "unique": false
+              },
+              {
+                "name": "idx_deals_agent_id",
+                "columns": [
+                  "agent_id"
+                ],
+                "unique": false
+              }
+            ],
+            "relations": [
+              {
+                "table": "leads",
+                "type": "many-to-one"
+              },
+              {
+                "table": "properties",
+                "type": "many-to-one"
+              },
+              {
+                "table": "agents",
+                "type": "many-to-one"
+              }
+            ]
+          }
+        ]
+      },
+      "api_schema": {
+        "endpoints": [
+          {
+            "method": "GET",
+            "path": "/agents",
+            "request_body": null,
+            "response_body": {
+              "id": "UUID",
+              "name": "string",
+              "email": "string",
+              "phone": "string",
+              "created_at": "timestamp",
+              "updated_at": "timestamp"
+            },
+            "auth_required": true,
+            "required_role": "admin",
+            "validation_rules": []
+          },
+          {
+            "method": "GET",
+            "path": "/agents/{id}",
+            "request_body": null,
+            "response_body": {
+              "id": "UUID",
+              "name": "string",
+              "email": "string",
+              "phone": "string",
+              "created_at": "timestamp",
+              "updated_at": "timestamp"
+            },
+            "auth_required": true,
+            "required_role": "admin",
+            "validation_rules": []
+          },
+          {
+            "method": "POST",
+            "path": "/agents",
+            "request_body": {
+              "name": "string",
+              "email": "string",
+              "phone": "string"
+            },
+            "response_body": {
+              "id": "UUID",
+              "name": "string",
+              "email": "string",
+              "phone": "string",
+              "created_at": "timestamp",
+              "updated_at": "timestamp"
+            },
+            "auth_required": true,
+            "required_role": "admin",
+            "validation_rules": [
+              "name is required",
+              "email is required",
+              "phone is required"
+            ]
+          },
+          {
+            "method": "PATCH",
+            "path": "/agents/{id}",
+            "request_body": {
+              "name": "string",
+              "email": "string",
+              "phone": "string"
+            },
+            "response_body": {
+              "id": "UUID",
+              "name": "string",
+              "email": "string",
+              "phone": "string",
+              "created_at": "timestamp",
+              "updated_at": "timestamp"
+            },
+            "auth_required": true,
+            "required_role": "admin",
+            "validation_rules": [
+              "name is required",
+              "email is required",
+              "phone is required"
+            ]
+          },
+          {
+            "method": "DELETE",
+            "path": "/agents/{id}",
+            "request_body": null,
+            "response_body": null,
+            "auth_required": true,
+            "required_role": "admin",
+            "validation_rules": []
+          },
+          {
+            "method": "GET",
+            "path": "/leads",
+            "request_body": null,
+            "response_body": {
+              "id": "UUID",
+              "name": "string",
+              "email": "string",
+              "phone": "string",
+              "status": "string",
+              "agent_id": "UUID",
+              "created_at": "timestamp",
+              "updated_at": "timestamp"
+            },
+            "auth_required": true,
+            "required_role": "agent",
+            "validation_rules": []
+          },
+          {
+            "method": "GET",
+            "path": "/leads/{id}",
+            "request_body": null,
+            "response_body": {
+              "id": "UUID",
+              "name": "string",
+              "email": "string",
+              "phone": "string",
+              "status": "string",
+              "agent_id": "UUID",
+              "created_at": "timestamp",
+              "updated_at": "timestamp"
+            },
+            "auth_required": true,
+            "required_role": "agent"
+          }
+        ]
+      }
+    }
+  },
+  "runtime_report": {
+    "execution_viable": true,
+    "simulated_flows": [
+      {
+        "name": "Lead CRUD Flow",
+        "steps": [
+          {
+            "step": "CREATE",
+            "method": "POST",
+            "path": "/leads",
+            "request_body": {
+              "name": "John Doe",
+              "email": "john.doe@example.com",
+              "phone": "123-456-7890",
+              "status": "new",
+              "agent_id": "123e4567-e89b-12d3-a456-426614174000"
+            },
+            "response_body": {
+              "id": "123e4567-e89b-12d3-a456-426614174000",
+              "name": "John Doe",
+              "email": "john.doe@example.com",
+              "phone": "123-456-7890",
+              "status": "new",
+              "agent_id": "123e4567-e89b-12d3-a456-426614174000",
+              "created_at": "2024-09-16T14:30:00.000Z",
+              "updated_at": "2024-09-16T14:30:00.000Z"
+            }
+          },
+          {
+            "step": "READ",
+            "method": "GET",
+            "path": "/leads",
+            "request_body": null,
+            "response_body": [
+              {
+                "id": "123e4567-e89b-12d3-a456-426614174000",
+                "name": "John Doe",
+                "email": "john.doe@example.com",
+                "phone": "123-456-7890",
+                "status": "new",
+                "agent_id": "123e4567-e89b-12d3-a456-426614174000",
+                "created_at": "2024-09-16T14:30:00.000Z",
+                "updated_at": "2024-09-16T14:30:00.000Z"
+              }
+            ]
+          },
+          {
+            "step": "UPDATE",
+            "method": "PATCH",
+            "path": "/leads/123e4567-e89b-12d3-a456-426614174000",
+            "request_body": {
+              "status": "in_progress"
+            },
+            "response_body": {
+              "id": "123e4567-e89b-12d3-a456-426614174000",
+              "name": "John Doe",
+              "email": "john.doe@example.com",
+              "phone": "123-456-7890",
+              "status": "in_progress",
+              "agent_id": "123e4567-e89b-12d3-a456-426614174000",
+              "created_at": "2024-09-16T14:30:00.000Z",
+              "updated_at": "2024-09-16T14:30:00.000Z"
+            }
+          },
+          {
+            "step": "DELETE",
+            "method": "DELETE",
+            "path": "/leads/123e4567-e89b-12d3-a456-426614174000",
+            "request_body": null,
+            "response_body": null
+          }
+        ],
+        "result": "success"
+      }
+    ],
+    "blocking_issues": [
+      "The create property form does not include a field for the agent_id, which is a required field in the properties table.",
+      "The permissions matrix does not specify permissions for the 'admin' role to manage deals, properties, or leads."
+    ],
+    "warnings": [
+      "The soft_deleted_at field in the leads table is nullable, but it may be more effective to use a separate 'deleted' table to track deleted leads.",
+      "The API endpoint for creating a new deal does not specify the required fields for the request body."
+    ]
+  },
+  "workflow_stubs": [
+    {
+      "name": "Trigger WhatsApp via Twilio when deals status changed",
+      "trigger": {
+        "entity": "deals",
+        "event": "status_changed",
+        "condition": null
+      },
+      "integration_id": "whatsapp",
+      "action_id": "send_template_message",
+      "payload_mapping": {},
+      "description": "",
+      "is_valid": true,
+      "hook_id": "hook_whatsapp_send_template_message"
+    }
+  ],
+  "integration_hooks": [
+    {
+      "hook_id": "hook_whatsapp_send_template_message",
+      "integration_id": "whatsapp",
+      "action_id": "send_template_message",
+      "auth_type": "api_key",
+      "required_inputs": [
+        "to",
+        "template_sid"
+      ],
+      "is_stub": false,
+      "validation_status": "valid",
+      "validation_errors": []
+    }
+  ],
+  "app_spec": {
+    "meta": {
+      "app_name": "Real Estate CRM",
+      "app_type": "crm",
+      "description": "CRM for a real estate agency. Agents manage leads, properties, and deals. WhatsApp notifications when a deal closes.",
+      "features": [
+        "lead management",
+        "property management",
+        "deal management",
+        "WhatsApp notifications"
+      ],
+      "assumptions": [
+        "The CRM is for a single real estate agency",
+        "Agents are the primary users of the CRM",
+        "WhatsApp notifications are sent when a deal is closed"
+      ]
+    },
+    "entities": [
+      {
+        "name": "leads",
+        "table_name": "leads",
+        "fields": [
+          "id",
+          "name",
+          "email",
+          "phone",
+          "status",
+          "agent_id",
+          "created_at",
+          "updated_at",
+          "soft_deleted_at"
+        ],
+        "relations": [
+          "belongs to agents via agent_id"
+        ]
+      },
+      {
+        "name": "properties",
+        "table_name": "properties",
+        "fields": [
+          "id",
+          "address",
+          "price",
+          "type",
+          "status",
+          "agent_id",
+          "created_at",
+          "updated_at",
+          "soft_deleted_at"
+        ],
+        "relations": [
+          "belongs to agents via agent_id"
+        ]
+      },
+      {
+        "name": "deals",
+        "table_name": "deals",
+        "fields": [
+          "id",
+          "lead_id",
+          "property_id",
+          "status",
+          "close_date",
+          "agent_id",
+          "created_at",
+          "updated_at",
+          "soft_deleted_at"
+        ],
+        "relations": [
+          "belongs to leads via lead_id",
+          "belongs to properties via property_id",
+          "belongs to agents via agent_id"
+        ]
+      },
+      {
+        "name": "agents",
+        "table_name": "agents",
+        "fields": [
+          "id",
+          "name",
+          "email",
+          "phone",
+          "created_at",
+          "updated_at"
+        ],
+        "relations": []
+      }
+    ],
+    "pages": [
+      {
+        "path": "/login",
+        "title": "Login",
+        "role_required": null,
+        "layout": "list",
+        "bound_entity": null
+      },
+      {
+        "path": "/register",
+        "title": "Register",
+        "role_required": null,
+        "layout": "list",
+        "bound_entity": null
+      },
+      {
+        "path": "/leads",
+        "title": "Leads",
+        "role_required": "agent",
+        "layout": "list",
+        "bound_entity": "leads"
+      },
+      {
+        "path": "/leads/create",
+        "title": "Create Lead",
+        "role_required": "agent",
+        "layout": "list",
+        "bound_entity": "leads"
+      },
+      {
+        "path": "/leads/:id",
+        "title": "Lead Details",
+        "role_required": "agent",
+        "layout": "detail",
+        "bound_entity": "leads"
+      },
+      {
+        "path": "/leads/:id/edit",
+        "title": "Edit Lead",
+        "role_required": "agent",
+        "layout": "detail",
+        "bound_entity": "leads"
+      },
+      {
+        "path": "/properties",
+        "title": "Properties",
+        "role_required": "agent",
+        "layout": "list",
+        "bound_entity": "properties"
+      },
+      {
+        "path": "/properties/create",
+        "title": "Create Property",
+        "role_required": "agent",
+        "layout": "list",
+        "bound_entity": "properties"
+      },
+      {
+        "path": "/properties/:id",
+        "title": "Property Details",
+        "role_required": "agent",
+        "layout": "detail",
+        "bound_entity": "properties"
+      },
+      {
+        "path": "/properties/:id/edit",
+        "title": "Edit Property",
+        "role_required": "agent",
+        "layout": "detail",
+        "bound_entity": "properties"
+      },
+      {
+        "path": "/deals",
+        "title": "Deals",
+        "role_required": "agent",
+        "layout": "list",
+        "bound_entity": "deals"
+      },
+      {
+        "path": "/deals/create",
+        "title": "Create Deal",
+        "role_required": "agent",
+        "layout": "list",
+        "bound_entity": "deals"
+      },
+      {
+        "path": "/deals/:id",
+        "title": "Deal Details",
+        "role_required": "agent",
+        "layout": "detail",
+        "bound_entity": "deals"
+      },
+      {
+        "path": "/deals/:id/edit",
+        "title": "Edit Deal",
+        "role_required": "agent",
+        "layout": "detail",
+        "bound_entity": "deals"
+      }
+    ],
+    "api_endpoints": [
+      {
+        "method": "GET",
+        "path": "/agents",
+        "auth_required": true,
+        "required_role": "admin",
+        "handler_description": "GET /agents",
+        "rate_limit_flag": false
+      },
+      {
+        "method": "GET",
+        "path": "/agents/{id}",
+        "auth_required": true,
+        "required_role": "admin",
+        "handler_description": "GET /agents/{id}",
+        "rate_limit_flag": false
+      },
+      {
+        "method": "POST",
+        "path": "/agents",
+        "auth_required": true,
+        "required_role": "admin",
+        "handler_description": "POST /agents",
+        "rate_limit_flag": true
+      },
+      {
+        "method": "PUT",
+        "path": "/agents/{id}",
+        "auth_required": true,
+        "required_role": "admin",
+        "handler_description": "PUT /agents/{id}",
+        "rate_limit_flag": true
+      },
+      {
+        "method": "DELETE",
+        "path": "/agents/{id}",
+        "auth_required": true,
+        "required_role": "admin",
+        "handler_description": "DELETE /agents/{id}",
+        "rate_limit_flag": false
+      },
+      {
+        "method": "GET",
+        "path": "/leads",
+        "auth_required": true,
+        "required_role": "agent",
+        "handler_description": "GET /leads",
+        "rate_limit_flag": false
+      },
+      {
+        "method": "GET",
+        "path": "/leads/{id}",
+        "auth_required": true,
+        "required_role": "agent",
+        "handler_description": "GET /leads/{id}",
+        "rate_limit_flag": false
+      },
+      {
+        "method": "POST",
+        "path": "/leads",
+        "auth_required": true,
+        "required_role": "agent",
+        "handler_description": "POST /leads",
+        "rate_limit_flag": false
+      },
+      {
+        "method": "PUT",
+        "path": "/leads/{id}",
+        "auth_required": true,
+        "required_role": "agent",
+        "handler_description": "PUT /leads/{id}",
+        "rate_limit_flag": false
+      },
+      {
+        "method": "DELETE",
+        "path": "/leads/{id}",
+        "auth_required": true,
+        "required_role": "agent",
+        "handler_description": "DELETE /leads/{id}",
+        "rate_limit_flag": false
+      },
+      {
+        "method": "GET",
+        "path": "/properties",
+        "auth_required": true,
+        "required_role": "agent",
+        "handler_description": "GET /properties",
+        "rate_limit_flag": false
+      },
+      {
+        "method": "GET",
+        "path": "/properties/{id}",
+        "auth_required": true,
+        "required_role": "agent",
+        "handler_description": "GET /properties/{id}",
+        "rate_limit_flag": false
+      },
+      {
+        "method": "POST",
+        "path": "/properties",
+        "auth_required": true,
+        "required_role": "agent",
+        "handler_description": "POST /properties",
+        "rate_limit_flag": false
+      },
+      {
+        "method": "PUT",
+        "path": "/properties/{id}",
+        "auth_required": true,
+        "required_role": "agent",
+        "handler_description": "PUT /properties/{id}",
+        "rate_limit_flag": false
+      },
+      {
+        "method": "DELETE",
+        "path": "/properties/{id}",
+        "auth_required": true,
+        "required_role": "agent",
+        "handler_description": "DELETE /properties/{id}",
+        "rate_limit_flag": false
+      },
+      {
+        "method": "GET",
+        "path": "/deals",
+        "auth_required": true,
+        "required_role": "agent",
+        "handler_description": "GET /deals",
+        "rate_limit_flag": false
+      },
+      {
+        "method": "GET",
+        "path": "/deals/{id}",
+        "auth_required": true,
+        "required_role": "agent",
+        "handler_description": "GET /deals/{id}",
+        "rate_limit_flag": false
+      }
+    ],
+    "auth_rules": {
+      "auth_strategy": "jwt",
+      "roles": [
+        "agent",
+        "admin"
+      ]
+    },
+    "integration_hooks": [
+      {
+        "hook_id": "hook_whatsapp_send_template_message",
+        "integration_id": "whatsapp",
+        "action_id": "send_template_message",
+        "auth_type": "api_key",
+        "required_inputs": [
+          "to",
+          "template_sid"
+        ],
+        "is_stub": false,
+        "validation_status": "valid",
+        "validation_errors": []
+      }
+    ],
+    "workflow_stubs": [
+      {
+        "name": "Trigger WhatsApp via Twilio when deals status changed",
+        "trigger": {
+          "entity": "deals",
+          "event": "status_changed",
+          "condition": null
+        },
+        "integration_id": "whatsapp",
+        "action_id": "send_template_message",
+        "payload_mapping": {},
+        "description": "",
+        "is_valid": true,
+        "hook_id": "hook_whatsapp_send_template_message"
+      }
+    ]
+  },
+  "repair_log": [
+    {
+      "attempt_number": 1,
+      "strategy": "FIELD",
+      "error_input": "The updated_at field in the agents table does not have a default value of NOW() or a similar timestamp function to track when the record was last updated.; The API endpoint /agents/{id} does not have a validation rule to check if the agent_id exists in the agents table before updating or deleting an agent.; The form on the /leads/create page does not have a field for the agent_id, which is a required field in the leads table.",
+      "outcome": "repaired",
+      "errors_before": 4,
+      "errors_after": 0
+    },
+    {
+      "attempt_number": 2,
+      "strategy": "ESCALATED",
+      "error_input": "The updated_at field in the agents table does not have a default value of NOW() or a similar timestamp function to track when the record was last updated.; The API endpoint /agents/{id} does not have a validation rule to check if the agent_id exists in the agents table before updating or deleting an agent.; The form on the /leads/create page does not have a field for the agent_id, which is a required field in the leads table.",
+      "outcome": "escalated",
+      "errors_before": 4,
+      "errors_after": 0
+    },
+    {
+      "attempt_number": 3,
+      "strategy": "ESCALATED",
+      "error_input": "The updated_at field in the agents table does not have a default value of NOW() or a similar timestamp function to track when the record was last updated.; The API endpoint /agents/{id} does not have a validation rule to check if the agent_id exists in the agents table before updating or deleting an agent.; The form on the /leads/create page does not have a field for the agent_id, which is a required field in the leads table.",
+      "outcome": "escalated",
+      "errors_before": 4,
+      "errors_after": 0
+    }
+  ],
+  "mermaid_diagrams": {
+    "pipeline_flow": "%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#2a2520', 'primaryTextColor': '#f7f6f3', 'primaryBorderColor': '#e86d2a', 'lineColor': '#ef8a52'}}}%%\ngraph LR\n    intent_extraction -->|27859ms| architecture_design\n    architecture_design -->|3750ms| db_schema\n    db_schema -->|20030ms| api_schema\n    api_schema -->|20078ms| ui_schema\n    ui_schema -->|20078ms| auth_schema\n    auth_schema -->|20077ms| workflow_stubs\n    workflow_stubs -->|20015ms| validation\n    validation -->|390ms| repair\n    repair -->|20328ms| runtime_validation\n    style intent_extraction fill:#f9f,stroke:#333,stroke-width:4px\n    style architecture_design fill:#f9f,stroke:#333,stroke-width:4px\n    style db_schema fill:#f9f,stroke:#333,stroke-width:4px\n    style api_schema fill:#f9f,stroke:#333,stroke-width:4px\n    style ui_schema fill:#f9f,stroke:#333,stroke-width:4px\n    style auth_schema fill:#f9f,stroke:#333,stroke-width:4px\n    style workflow_stubs fill:#f9f,stroke:#333,stroke-width:4px\n    style validation fill:#f9f,stroke:#333,stroke-width:4px\n    style repair fill:#f9f,stroke:#333,stroke-width:4px\n    style runtime_validation fill:#f9f,stroke:#333,stroke-width:4px",
+    "er_diagram": "erDiagram\n    Agent }|..|{ Lead : manages\n    Agent }|..|{ Property : manages\n    Agent }|..|{ Deal : manages\n    Lead }|..|{ Property : associated_with\n    Property }|..|{ Deal : associated_with\n    Deal }|..|{ Lead : associated_with",
+    "api_sequence": "sequenceDiagram\n    participant Agent as Agent\n    participant Lead as Lead\n    participant Property as Property\n    participant Deal as Deal\n    Agent->>Lead: Create Lead\n    Lead->>Property: Associate Property\n    Property->>Deal: Associate Deal\n    Deal->>Lead: Update Lead Status\n    Agent->>Deal: Close Deal\n    Deal->>Agent: Send WhatsApp Notification"
+  },
+  "eval_metrics": {
+    "total_latency_ms": 457750,
+    "total_tokens": 39454,
+    "repair_count": 3,
+    "hitl_count": 2,
+    "stage_latencies": {
+      "intent_extraction": 27859,
+      "architecture_design": 3750,
+      "db_schema": 20030,
+      "api_schema": 20078,
+      "ui_schema": 20078,
+      "auth_schema": 20077,
+      "workflow_stubs": 20015,
+      "validation": 390,
+      "repair": 20328,
+      "runtime_validation": 20390,
+      "logging": 20046
+    },
+    "estimated_cost_usd": 0.023278,
+    "stage_costs_usd": {
+      "task_extract_intent": 0.0005241099999999999,
+      "task_design_architecture": 0.0014255,
+      "task_generate_db_schema": 0.00227889,
+      "task_generate_api_schema": 0.00440463,
+      "task_generate_ui_schema": 0.00398488,
+      "task_generate_auth_schema": 0.0014705999999999999,
+      "task_generate_workflow_stubs": 0.0034392,
+      "task_validate_schemas": 0.00653475,
+      "task_repair_schemas": 0,
+      "task_validate_runtime": 0,
+      "task_log_progress": 0.0018595
+    },
+    "stage_models_used": {
+      "intent_extraction": "groq/llama-3.3-70b-versatile",
+      "architecture_design": "groq/llama-3.3-70b-versatile",
+      "workflow_stubs": "groq/llama-3.3-70b-versatile",
+      "validation": "groq/llama-3.3-70b-versatile",
+      "repair": "groq/llama-3.3-70b-versatile",
+      "runtime_validation": "groq/llama-3.3-70b-versatile",
+      "logging": "groq/llama-3.3-70b-versatile"
+    },
+    "total_cost_usd": 0.025922,
+    "routing_config": {
+      "stages": {
+        "intent_extraction": {
+          "primary": "groq/llama-3.3-70b-versatile",
+          "fallback": "openrouter/meta-llama/llama-3.3-70b-instruct",
+          "temperature": 0.1
+        },
+        "architecture_design": {
+          "primary": "groq/llama-3.3-70b-versatile",
+          "fallback": "openrouter/meta-llama/llama-3.3-70b-instruct",
+          "temperature": 0.2
+        },
+        "db_schema": {
+          "primary": "groq/llama-3.3-70b-versatile",
+          "fallback": "gemini/gemini-1.5-flash",
+          "temperature": 0.2
+        },
+        "api_schema": {
+          "primary": "groq/llama-3.3-70b-versatile",
+          "fallback": "gemini/gemini-1.5-flash",
+          "temperature": 0.2
+        },
+        "ui_schema": {
+          "primary": "groq/llama-3.3-70b-versatile",
+          "fallback": "openrouter/meta-llama/llama-3.3-70b-instruct",
+          "temperature": 0.2
+        },
+        "auth_schema": {
+          "primary": "groq/llama-3.3-70b-versatile",
+          "fallback": "openrouter/meta-llama/llama-3.3-70b-instruct",
+          "temperature": 0.2
+        },
+        "validation": {
+          "primary": "groq/llama-3.3-70b-versatile",
+          "fallback": "openrouter/meta-llama/llama-3.3-70b-instruct",
+          "temperature": 0.1
+        },
+        "repair": {
+          "primary": "groq/llama-3.3-70b-versatile",
+          "fallback": "gemini/gemini-1.5-flash",
+          "temperature": 0.2
+        },
+        "workflow_stubs": {
+          "primary": "groq/llama-3.3-70b-versatile",
+          "fallback": "openrouter/meta-llama/llama-3.3-70b-instruct",
+          "temperature": 0.2
+        },
+        "runtime_validation": {
+          "primary": "groq/llama-3.3-70b-versatile",
+          "fallback": "openrouter/meta-llama/llama-3.3-70b-instruct",
+          "temperature": 0.1
+        },
+        "logging": {
+          "primary": "groq/llama-3.3-70b-versatile",
+          "fallback": "openrouter/meta-llama/llama-3.3-70b-instruct",
+          "temperature": 0.3
+        }
+      },
+      "providers": [
+        "groq",
+        "gemini",
+        "openrouter"
+      ]
+    }
+  }
+}

@@ -1,0 +1,3228 @@
+{
+  "session_id": "86ea5996-03a2-471b-a20e-e482621fe06c",
+  "prompt": "Build something like Notion for doctors.",
+  "original_prompt": "Build something like Notion for doctors.",
+  "modification_history": [],
+  "intent": {
+    "app_name": "Medical Notion",
+    "app_type": "custom",
+    "features": [],
+    "entities": [],
+    "user_roles": [],
+    "integrations": [],
+    "premium_requirements": null,
+    "analytics_requirements": null,
+    "confidence": 0.4,
+    "assumptions": [
+      "The application is for medical professionals",
+      "Notion is used as a reference for the type of application"
+    ],
+    "clarifications_received": [
+      "A secure workspace for medical notes, managing patient records, and scheduling appointments. Strict HIPAA compliance and data sensitivity are absolutely required.",
+      "Doctors can write clinical notes and view patient records. Nurses can view records and manage appointments.",
+      "No, this is for internal clinic use only."
+    ],
+    "hitl_required": true,
+    "questions": [
+      "What specific features of Notion would you like to replicate for doctors?",
+      "What type of medical professionals will be using this application (e.g. general practitioners, specialists, nurses)?",
+      "Are there any specific medical domains or specialties that this application should focus on (e.g. patient management, medical research, telemedicine)?"
+    ]
+  },
+  "architecture": {
+    "entities": [
+      {
+        "name": "User",
+        "attributes": [
+          "id",
+          "username",
+          "password",
+          "role"
+        ],
+        "description": "Medical professionals using the application"
+      },
+      {
+        "name": "Patient",
+        "attributes": [
+          "id",
+          "name",
+          "date_of_birth",
+          "medical_history"
+        ],
+        "description": "Patients whose records are managed by the application"
+      },
+      {
+        "name": "ClinicalNote",
+        "attributes": [
+          "id",
+          "patient_id",
+          "note",
+          "created_at"
+        ],
+        "description": "Clinical notes written by doctors"
+      },
+      {
+        "name": "Appointment",
+        "attributes": [
+          "id",
+          "patient_id",
+          "doctor_id",
+          "schedule"
+        ],
+        "description": "Appointments scheduled by nurses"
+      }
+    ],
+    "relations": [
+      {
+        "from_entity": "User",
+        "to_entity": "ClinicalNote",
+        "cardinality": "one-to-many",
+        "description": "A doctor can write multiple clinical notes"
+      },
+      {
+        "from_entity": "User",
+        "to_entity": "Appointment",
+        "cardinality": "one-to-many",
+        "description": "A nurse can manage multiple appointments"
+      },
+      {
+        "from_entity": "Patient",
+        "to_entity": "ClinicalNote",
+        "cardinality": "one-to-many",
+        "description": "A patient can have multiple clinical notes"
+      },
+      {
+        "from_entity": "Patient",
+        "to_entity": "Appointment",
+        "cardinality": "one-to-many",
+        "description": "A patient can have multiple appointments"
+      }
+    ],
+    "page_flows": [
+      {
+        "name": "Login",
+        "pages": [
+          "login",
+          "dashboard"
+        ],
+        "transitions": [
+          {
+            "from": "login",
+            "to": "dashboard",
+            "condition": "successful login"
+          }
+        ]
+      },
+      {
+        "name": "Patient Management",
+        "pages": [
+          "patient_list",
+          "patient_detail",
+          "clinical_note",
+          "appointment"
+        ],
+        "transitions": [
+          {
+            "from": "patient_list",
+            "to": "patient_detail",
+            "condition": "select patient"
+          },
+          {
+            "from": "patient_detail",
+            "to": "clinical_note",
+            "condition": "create clinical note"
+          },
+          {
+            "from": "patient_detail",
+            "to": "appointment",
+            "condition": "schedule appointment"
+          }
+        ]
+      }
+    ],
+    "role_hierarchy": {
+      "Doctor": {
+        "parent": null,
+        "level": 2
+      },
+      "Nurse": {
+        "parent": null,
+        "level": 1
+      },
+      "Admin": {
+        "parent": null,
+        "level": 3
+      }
+    },
+    "business_rules": [
+      {
+        "name": "HIPAA Compliance",
+        "description": "All patient data must be encrypted and access-controlled",
+        "affected_entities": [
+          "Patient",
+          "ClinicalNote",
+          "Appointment"
+        ]
+      },
+      {
+        "name": "Role-Based Access Control",
+        "description": "Doctors can create and view clinical notes, nurses can view patient records and manage appointments",
+        "affected_entities": [
+          "User",
+          "Patient",
+          "ClinicalNote",
+          "Appointment"
+        ]
+      }
+    ],
+    "data_flows": [
+      {
+        "name": "User Authentication",
+        "source": "User",
+        "destination": "Login",
+        "description": "User credentials are verified for authentication"
+      },
+      {
+        "name": "Patient Data Retrieval",
+        "source": "Patient",
+        "destination": "Patient Detail",
+        "description": "Patient data is retrieved for display"
+      },
+      {
+        "name": "Clinical Note Creation",
+        "source": "ClinicalNote",
+        "destination": "Patient Detail",
+        "description": "Clinical notes are created and associated with patients"
+      },
+      {
+        "name": "Appointment Scheduling",
+        "source": "Appointment",
+        "destination": "Patient Detail",
+        "description": "Appointments are scheduled and associated with patients"
+      }
+    ]
+  },
+  "db_schema": {
+    "tables": [
+      {
+        "name": "User",
+        "columns": [
+          {
+            "name": "id",
+            "data_type": "UUID",
+            "nullable": false,
+            "default_value": null,
+            "constraints": [
+              "PRIMARY KEY"
+            ]
+          },
+          {
+            "name": "username",
+            "data_type": "VARCHAR(255)",
+            "nullable": false,
+            "default_value": null,
+            "constraints": [
+              "UNIQUE"
+            ]
+          },
+          {
+            "name": "password",
+            "data_type": "VARCHAR(255)",
+            "nullable": false,
+            "default_value": null,
+            "constraints": []
+          },
+          {
+            "name": "role",
+            "data_type": "VARCHAR(255)",
+            "nullable": false,
+            "default_value": null,
+            "constraints": []
+          },
+          {
+            "name": "created_at",
+            "data_type": "TIMESTAMP",
+            "nullable": false,
+            "default_value": "CURRENT_TIMESTAMP",
+            "constraints": []
+          },
+          {
+            "name": "updated_at",
+            "data_type": "TIMESTAMP",
+            "nullable": false,
+            "default_value": "CURRENT_TIMESTAMP",
+            "constraints": []
+          },
+          {
+            "name": "soft_deleted_at",
+            "data_type": "TIMESTAMP",
+            "nullable": true,
+            "default_value": null,
+            "constraints": []
+          }
+        ],
+        "primary_key": "id",
+        "foreign_keys": [],
+        "indexes": [
+          {
+            "name": "username_index",
+            "columns": [
+              "username"
+            ],
+            "unique": true
+          }
+        ],
+        "relations": []
+      },
+      {
+        "name": "Patient",
+        "columns": [
+          {
+            "name": "id",
+            "data_type": "UUID",
+            "nullable": false,
+            "default_value": null,
+            "constraints": [
+              "PRIMARY KEY"
+            ]
+          },
+          {
+            "name": "name",
+            "data_type": "VARCHAR(255)",
+            "nullable": false,
+            "default_value": null,
+            "constraints": []
+          },
+          {
+            "name": "date_of_birth",
+            "data_type": "DATE",
+            "nullable": false,
+            "default_value": null,
+            "constraints": []
+          },
+          {
+            "name": "medical_history",
+            "data_type": "TEXT",
+            "nullable": true,
+            "default_value": null,
+            "constraints": []
+          },
+          {
+            "name": "created_at",
+            "data_type": "TIMESTAMP",
+            "nullable": false,
+            "default_value": "CURRENT_TIMESTAMP",
+            "constraints": []
+          },
+          {
+            "name": "updated_at",
+            "data_type": "TIMESTAMP",
+            "nullable": false,
+            "default_value": "CURRENT_TIMESTAMP",
+            "constraints": []
+          },
+          {
+            "name": "soft_deleted_at",
+            "data_type": "TIMESTAMP",
+            "nullable": true,
+            "default_value": null,
+            "constraints": []
+          }
+        ],
+        "primary_key": "id",
+        "foreign_keys": [],
+        "indexes": [
+          {
+            "name": "name_index",
+            "columns": [
+              "name"
+            ],
+            "unique": false
+          }
+        ],
+        "relations": []
+      },
+      {
+        "name": "ClinicalNote",
+        "columns": [
+          {
+            "name": "id",
+            "data_type": "UUID",
+            "nullable": false,
+            "default_value": null,
+            "constraints": [
+              "PRIMARY KEY"
+            ]
+          },
+          {
+            "name": "patient_id",
+            "data_type": "UUID",
+            "nullable": false,
+            "default_value": null,
+            "constraints": []
+          },
+          {
+            "name": "note",
+            "data_type": "TEXT",
+            "nullable": false,
+            "default_value": null,
+            "constraints": []
+          },
+          {
+            "name": "created_at",
+            "data_type": "TIMESTAMP",
+            "nullable": false,
+            "default_value": "CURRENT_TIMESTAMP",
+            "constraints": []
+          },
+          {
+            "name": "updated_at",
+            "data_type": "TIMESTAMP",
+            "nullable": false,
+            "default_value": "CURRENT_TIMESTAMP",
+            "constraints": []
+          },
+          {
+            "name": "soft_deleted_at",
+            "data_type": "TIMESTAMP",
+            "nullable": true,
+            "default_value": null,
+            "constraints": []
+          }
+        ],
+        "primary_key": "id",
+        "foreign_keys": [
+          {
+            "column": "patient_id",
+            "references_table": "Patient",
+            "references_column": "id",
+            "on_delete": "CASCADE"
+          }
+        ],
+        "indexes": [
+          {
+            "name": "patient_id_index",
+            "columns": [
+              "patient_id"
+            ],
+            "unique": false
+          }
+        ],
+        "relations": [
+          {
+            "type": "one-to-many",
+            "table": "Patient"
+          }
+        ]
+      },
+      {
+        "name": "Appointment",
+        "columns": [
+          {
+            "name": "id",
+            "data_type": "UUID",
+            "nullable": false,
+            "default_value": null,
+            "constraints": [
+              "PRIMARY KEY"
+            ]
+          },
+          {
+            "name": "patient_id",
+            "data_type": "UUID",
+            "nullable": false,
+            "default_value": null,
+            "constraints": []
+          },
+          {
+            "name": "doctor_id",
+            "data_type": "UUID",
+            "nullable": false,
+            "default_value": null,
+            "constraints": []
+          },
+          {
+            "name": "schedule",
+            "data_type": "TIMESTAMP",
+            "nullable": false,
+            "default_value": null,
+            "constraints": []
+          },
+          {
+            "name": "created_at",
+            "data_type": "TIMESTAMP",
+            "nullable": false,
+            "default_value": "CURRENT_TIMESTAMP",
+            "constraints": []
+          },
+          {
+            "name": "updated_at",
+            "data_type": "TIMESTAMP",
+            "nullable": false,
+            "default_value": "CURRENT_TIMESTAMP",
+            "constraints": []
+          },
+          {
+            "name": "soft_deleted_at",
+            "data_type": "TIMESTAMP",
+            "nullable": true,
+            "default_value": null,
+            "constraints": []
+          }
+        ],
+        "primary_key": "id",
+        "foreign_keys": [
+          {
+            "column": "patient_id",
+            "references_table": "Patient",
+            "references_column": "id",
+            "on_delete": "CASCADE"
+          },
+          {
+            "column": "doctor_id",
+            "references_table": "User",
+            "references_column": "id",
+            "on_delete": "CASCADE"
+          }
+        ],
+        "indexes": [
+          {
+            "name": "patient_id_index",
+            "columns": [
+              "patient_id"
+            ],
+            "unique": false
+          },
+          {
+            "name": "doctor_id_index",
+            "columns": [
+              "doctor_id"
+            ],
+            "unique": false
+          }
+        ],
+        "relations": [
+          {
+            "type": "one-to-many",
+            "table": "Patient"
+          },
+          {
+            "type": "one-to-many",
+            "table": "User"
+          }
+        ]
+      },
+      {
+        "name": "User_ClinicalNote",
+        "columns": [
+          {
+            "name": "id",
+            "data_type": "UUID",
+            "nullable": false,
+            "default_value": null,
+            "constraints": [
+              "PRIMARY KEY"
+            ]
+          },
+          {
+            "name": "user_id",
+            "data_type": "UUID",
+            "nullable": false,
+            "default_value": null,
+            "constraints": []
+          },
+          {
+            "name": "clinical_note_id",
+            "data_type": "UUID",
+            "nullable": false,
+            "default_value": null,
+            "constraints": []
+          },
+          {
+            "name": "created_at",
+            "data_type": "TIMESTAMP",
+            "nullable": false,
+            "default_value": "CURRENT_TIMESTAMP",
+            "constraints": []
+          },
+          {
+            "name": "updated_at",
+            "data_type": "TIMESTAMP",
+            "nullable": false,
+            "default_value": "CURRENT_TIMESTAMP",
+            "constraints": []
+          }
+        ],
+        "primary_key": "id",
+        "foreign_keys": [
+          {
+            "column": "user_id",
+            "references_table": "User",
+            "references_column": "id",
+            "on_delete": "CASCADE"
+          },
+          {
+            "column": "clinical_note_id",
+            "references_table": "ClinicalNote",
+            "references_column": "id",
+            "on_delete": "CASCADE"
+          }
+        ],
+        "indexes": [
+          {
+            "name": "user_id_index",
+            "columns": [
+              "user_id"
+            ],
+            "unique": false
+          },
+          {
+            "name": "clinical_note_id_index",
+            "columns": [
+              "clinical_note_id"
+            ],
+            "unique": false
+          }
+        ],
+        "relations": []
+      },
+      {
+        "name": "User_Appointment",
+        "columns": [
+          {
+            "name": "id",
+            "data_type": "UUID",
+            "nullable": false,
+            "default_value": null,
+            "constraints": [
+              "PRIMARY KEY"
+            ]
+          },
+          {
+            "name": "user_id",
+            "data_type": "UUID",
+            "nullable": false,
+            "default_value": null,
+            "constraints": []
+          },
+          {
+            "name": "appointment_id",
+            "data_type": "UUID",
+            "nullable": false,
+            "default_value": null,
+            "constraints": []
+          },
+          {
+            "name": "created_at",
+            "data_type": "TIMESTAMP",
+            "nullable": false,
+            "default_value": "CURRENT_TIMESTAMP",
+            "constraints": []
+          },
+          {
+            "name": "updated_at",
+            "data_type": "TIMESTAMP",
+            "nullable": false,
+            "default_value": "CURRENT_TIMESTAMP",
+            "constraints": []
+          }
+        ],
+        "primary_key": "id",
+        "foreign_keys": [
+          {
+            "column": "user_id",
+            "references_table": "User",
+            "references_column": "id",
+            "on_delete": "CASCADE"
+          },
+          {
+            "column": "appointment_id",
+            "references_table": "Appointment",
+            "references_column": "id",
+            "on_delete": "CASCADE"
+          }
+        ],
+        "indexes": [
+          {
+            "name": "user_id_index",
+            "columns": [
+              "user_id"
+            ],
+            "unique": false
+          },
+          {
+            "name": "appointment_id_index",
+            "columns": [
+              "appointment_id"
+            ],
+            "unique": false
+          }
+        ],
+        "relations": []
+      }
+    ]
+  },
+  "api_schema": {
+    "endpoints": [
+      {
+        "method": "GET",
+        "path": "/users",
+        "description": "Get a list of users",
+        "request_body": null,
+        "response_body": {
+          "id": "UUID",
+          "username": "VARCHAR(255)",
+          "role": "VARCHAR(255)",
+          "created_at": "TIMESTAMP",
+          "updated_at": "TIMESTAMP"
+        },
+        "auth_required": true,
+        "required_role": "Admin",
+        "validation_rules": [],
+        "error_responses": [
+          {
+            "status_code": 401,
+            "description": "Unauthorized"
+          },
+          {
+            "status_code": 403,
+            "description": "Forbidden"
+          }
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/users/{id}",
+        "description": "Get a user by id",
+        "request_body": null,
+        "response_body": {
+          "id": "UUID",
+          "username": "VARCHAR(255)",
+          "role": "VARCHAR(255)",
+          "created_at": "TIMESTAMP",
+          "updated_at": "TIMESTAMP"
+        },
+        "auth_required": true,
+        "required_role": "Admin",
+        "validation_rules": [],
+        "error_responses": [
+          {
+            "status_code": 401,
+            "description": "Unauthorized"
+          },
+          {
+            "status_code": 403,
+            "description": "Forbidden"
+          },
+          {
+            "status_code": 404,
+            "description": "Not Found"
+          }
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/users",
+        "description": "Create a new user",
+        "request_body": {
+          "username": "VARCHAR(255)",
+          "password": "VARCHAR(255)",
+          "role": "VARCHAR(255)"
+        },
+        "response_body": {
+          "id": "UUID",
+          "username": "VARCHAR(255)",
+          "role": "VARCHAR(255)",
+          "created_at": "TIMESTAMP",
+          "updated_at": "TIMESTAMP"
+        },
+        "auth_required": true,
+        "required_role": "Admin",
+        "validation_rules": [
+          "username is required",
+          "password is required",
+          "role is required"
+        ],
+        "error_responses": [
+          {
+            "status_code": 401,
+            "description": "Unauthorized"
+          },
+          {
+            "status_code": 403,
+            "description": "Forbidden"
+          },
+          {
+            "status_code": 400,
+            "description": "Bad Request"
+          }
+        ]
+      },
+      {
+        "method": "PUT",
+        "path": "/users/{id}",
+        "description": "Update a user",
+        "request_body": {
+          "username": "VARCHAR(255)",
+          "password": "VARCHAR(255)",
+          "role": "VARCHAR(255)"
+        },
+        "response_body": {
+          "id": "UUID",
+          "username": "VARCHAR(255)",
+          "role": "VARCHAR(255)",
+          "created_at": "TIMESTAMP",
+          "updated_at": "TIMESTAMP"
+        },
+        "auth_required": true,
+        "required_role": "Admin",
+        "validation_rules": [
+          "username is required",
+          "password is required",
+          "role is required"
+        ],
+        "error_responses": [
+          {
+            "status_code": 401,
+            "description": "Unauthorized"
+          },
+          {
+            "status_code": 403,
+            "description": "Forbidden"
+          },
+          {
+            "status_code": 404,
+            "description": "Not Found"
+          },
+          {
+            "status_code": 400,
+            "description": "Bad Request"
+          }
+        ]
+      },
+      {
+        "method": "DELETE",
+        "path": "/users/{id}",
+        "description": "Delete a user",
+        "request_body": null,
+        "response_body": null,
+        "auth_required": true,
+        "required_role": "Admin",
+        "validation_rules": [],
+        "error_responses": [
+          {
+            "status_code": 401,
+            "description": "Unauthorized"
+          },
+          {
+            "status_code": 403,
+            "description": "Forbidden"
+          },
+          {
+            "status_code": 404,
+            "description": "Not Found"
+          }
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/patients",
+        "description": "Get a list of patients",
+        "request_body": null,
+        "response_body": {
+          "id": "UUID",
+          "name": "VARCHAR(255)",
+          "date_of_birth": "DATE",
+          "medical_history": "TEXT",
+          "created_at": "TIMESTAMP",
+          "updated_at": "TIMESTAMP"
+        },
+        "auth_required": true,
+        "required_role": "Doctor",
+        "validation_rules": [],
+        "error_responses": [
+          {
+            "status_code": 401,
+            "description": "Unauthorized"
+          },
+          {
+            "status_code": 403,
+            "description": "Forbidden"
+          }
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/patients/{id}",
+        "description": "Get a patient by id",
+        "request_body": null,
+        "response_body": {
+          "id": "UUID",
+          "name": "VARCHAR(255)",
+          "date_of_birth": "DATE",
+          "medical_history": "TEXT",
+          "created_at": "TIMESTAMP",
+          "updated_at": "TIMESTAMP"
+        },
+        "auth_required": true,
+        "required_role": "Doctor",
+        "validation_rules": [],
+        "error_responses": [
+          {
+            "status_code": 401,
+            "description": "Unauthorized"
+          },
+          {
+            "status_code": 403,
+            "description": "Forbidden"
+          },
+          {
+            "status_code": 404,
+            "description": "Not Found"
+          }
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/patients",
+        "description": "Create a new patient",
+        "request_body": {
+          "name": "VARCHAR(255)",
+          "date_of_birth": "DATE",
+          "medical_history": "TEXT"
+        },
+        "response_body": {
+          "id": "UUID",
+          "name": "VARCHAR(255)",
+          "date_of_birth": "DATE",
+          "medical_history": "TEXT",
+          "created_at": "TIMESTAMP",
+          "updated_at": "TIMESTAMP"
+        },
+        "auth_required": true,
+        "required_role": "Doctor",
+        "validation_rules": [
+          "name is required",
+          "date_of_birth is required"
+        ],
+        "error_responses": [
+          {
+            "status_code": 401,
+            "description": "Unauthorized"
+          },
+          {
+            "status_code": 403,
+            "description": "Forbidden"
+          },
+          {
+            "status_code": 400,
+            "description": "Bad Request"
+          }
+        ]
+      },
+      {
+        "method": "PUT",
+        "path": "/patients/{id}",
+        "description": "Update a patient",
+        "request_body": {
+          "name": "VARCHAR(255)",
+          "date_of_birth": "DATE",
+          "medical_history": "TEXT"
+        },
+        "response_body": {
+          "id": "UUID",
+          "name": "VARCHAR(255)",
+          "date_of_birth": "DATE",
+          "medical_history": "TEXT",
+          "created_at": "TIMESTAMP",
+          "updated_at": "TIMESTAMP"
+        },
+        "auth_required": true,
+        "required_role": "Doctor",
+        "validation_rules": [
+          "name is required",
+          "date_of_birth is required"
+        ],
+        "error_responses": [
+          {
+            "status_code": 401,
+            "description": "Unauthorized"
+          },
+          {
+            "status_code": 403,
+            "description": "Forbidden"
+          },
+          {
+            "status_code": 404,
+            "description": "Not Found"
+          },
+          {
+            "status_code": 400,
+            "description": "Bad Request"
+          }
+        ]
+      },
+      {
+        "method": "DELETE",
+        "path": "/patients/{id}",
+        "description": "Delete a patient",
+        "request_body": null,
+        "response_body": null,
+        "auth_required": true,
+        "required_role": "Doctor",
+        "validation_rules": [],
+        "error_responses": [
+          {
+            "status_code": 401,
+            "description": "Unauthorized"
+          },
+          {
+            "status_code": 403,
+            "description": "Forbidden"
+          },
+          {
+            "status_code": 404,
+            "description": "Not Found"
+          }
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/clinical-notes",
+        "description": "Get a list of clinical notes",
+        "request_body": null,
+        "response_body": {
+          "id": "UUID",
+          "patient_id": "UUID",
+          "note": "TEXT",
+          "created_at": "TIMESTAMP",
+          "updated_at": "TIMESTAMP"
+        },
+        "auth_required": true,
+        "required_role": "Doctor",
+        "validation_rules": [],
+        "error_responses": [
+          {
+            "status_code": 401,
+            "description": "Unauthorized"
+          },
+          {
+            "status_code": 403,
+            "description": "Forbidden"
+          }
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/clinical-notes/{id}",
+        "description": "Get a clinical note by id",
+        "request_body": null,
+        "response_body": {
+          "id": "UUID",
+          "patient_id": "UUID",
+          "note": "TEXT",
+          "created_at": "TIMESTAMP",
+          "updated_at": "TIMESTAMP"
+        },
+        "auth_required": true,
+        "required_role": "Doctor",
+        "validation_rules": [],
+        "error_responses": [
+          {
+            "status_code": 401,
+            "description": "Unauthorized"
+          },
+          {
+            "status_code": 403,
+            "description": "Forbidden"
+          },
+          {
+            "status_code": 404,
+            "description": "Not Found"
+          }
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/clinical-notes",
+        "description": "Create a new clinical note",
+        "request_body": {
+          "patient_id": "UUID",
+          "note": "TEXT"
+        },
+        "response_body": {
+          "id": "UUID",
+          "patient_id": "UUID",
+          "note": "TEXT",
+          "created_at": "TIMESTAMP",
+          "updated_at": "TIMESTAMP"
+        },
+        "auth_required": true,
+        "required_role": "Doctor",
+        "validation_rules": [
+          "patient_id is required",
+          "note is required"
+        ],
+        "error_responses": [
+          {
+            "status_code": 401,
+            "description": "Unauthorized"
+          },
+          {
+            "status_code": 403,
+            "description": "Forbidden"
+          },
+          {
+            "status_code": 400,
+            "description": "Bad Request"
+          }
+        ]
+      },
+      {
+        "method": "PUT",
+        "path": "/clinical-notes/{id}",
+        "description": "Update a clinical note",
+        "request_body": {
+          "patient_id": "UUID",
+          "note": "TEXT"
+        },
+        "response_body": {
+          "id": "UUID",
+          "patient_id": "UUID",
+          "note": "TEXT",
+          "created_at": "TIMESTAMP",
+          "updated_at": "TIMESTAMP"
+        },
+        "auth_required": true,
+        "required_role": "Doctor",
+        "validation_rules": [
+          "patient_id is required",
+          "note is required"
+        ],
+        "error_responses": [
+          {
+            "status_code": 401,
+            "description": "Unauthorized"
+          },
+          {
+            "status_code": 403,
+            "description": "Forbidden"
+          },
+          {
+            "status_code": 404,
+            "description": "Not Found"
+          },
+          {
+            "status_code": 400,
+            "description": "Bad Request"
+          }
+        ]
+      },
+      {
+        "method": "DELETE",
+        "path": "/clinical-notes/{id}",
+        "description": "Delete a clinical note",
+        "request_body": null,
+        "response_body": null,
+        "auth_required": true,
+        "required_role": "Doctor",
+        "validation_rules": [],
+        "error_responses": [
+          {
+            "status_code": 401,
+            "description": "Unauthorized"
+          },
+          {
+            "status_code": 403,
+            "description": "Forbidden"
+          },
+          {
+            "status_code": 404,
+            "description": "Not Found"
+          }
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/appointments",
+        "description": "Get a list of appointments",
+        "request_body": null,
+        "response_body": {
+          "id": "UUID",
+          "patient_id": "UUID",
+          "doctor_id": "UUID",
+          "schedule": "TIMESTAMP",
+          "created_at": "TIMESTAMP",
+          "updated_at": "TIMESTAMP"
+        },
+        "auth_required": true,
+        "required_role": "Doctor",
+        "validation_rules": [],
+        "error_responses": [
+          {
+            "status_code": 401,
+            "description": "Unauthorized"
+          },
+          {
+            "status_code": 403,
+            "description": "Forbidden"
+          }
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/appointments/{id}",
+        "description": "Get an appointment by id",
+        "request_body": null,
+        "response_body": {
+          "id": "UUID",
+          "patient_id": "UUID",
+          "doctor_id": "UUID",
+          "schedule": "TIMESTAMP",
+          "created_at": "TIMESTAMP",
+          "updated_at": "TIMESTAMP"
+        },
+        "auth_required": true,
+        "required_role": "Doctor",
+        "validation_rules": [],
+        "error_responses": [
+          {
+            "status_code": 401,
+            "description": "Unauthorized"
+          },
+          {
+            "status_code": 403,
+            "description": "Forbidden"
+          },
+          {
+            "status_code": 404,
+            "description": "Not Found"
+          }
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/appointments",
+        "description": "Create a new appointment",
+        "request_body": {
+          "patient_id": "UUID",
+          "doctor_id": "UUID",
+          "schedule": "TIMESTAMP"
+        },
+        "response_body": {
+          "id": "UUID",
+          "patient_id": "UUID",
+          "doctor_id": "UUID",
+          "schedule": "TIMESTAMP",
+          "created_at": "TIMESTAMP",
+          "updated_at": "TIMESTAMP"
+        },
+        "auth_required": true,
+        "required_role": "Doctor",
+        "validation_rules": [
+          "patient_id is required",
+          "doctor_id is required",
+          "schedule is required"
+        ],
+        "error_responses": [
+          {
+            "status_code": 401,
+            "description": "Unauthorized"
+          },
+          {
+            "status_code": 403,
+            "description": "Forbidden"
+          },
+          {
+            "status_code": 400,
+            "description": "Bad Request"
+          }
+        ]
+      },
+      {
+        "method": "PUT",
+        "path": "/appointments/{id}",
+        "description": "Update an appointment",
+        "request_body": {
+          "patient_id": "UUID",
+          "doctor_id": "UUID",
+          "schedule": "TIMESTAMP"
+        },
+        "response_body": {
+          "id": "UUID",
+          "patient_id": "UUID",
+          "doctor_id": "UUID",
+          "schedule": "TIMESTAMP",
+          "created_at": "TIMESTAMP",
+          "updated_at": "TIMESTAMP"
+        },
+        "auth_required": true,
+        "required_role": "Doctor",
+        "validation_rules": [
+          "patient_id is required",
+          "doctor_id is required",
+          "schedule is required"
+        ],
+        "error_responses": [
+          {
+            "status_code": 401,
+            "description": "Unauthorized"
+          },
+          {
+            "status_code": 403,
+            "description": "Forbidden"
+          },
+          {
+            "status_code": 404,
+            "description": "Not Found"
+          },
+          {
+            "status_code": 400,
+            "description": "Bad Request"
+          }
+        ]
+      },
+      {
+        "method": "DELETE",
+        "path": "/appointments/{id}",
+        "description": "Delete an appointment",
+        "request_body": null,
+        "response_body": null,
+        "auth_required": true,
+        "required_role": "Doctor",
+        "validation_rules": [],
+        "error_responses": [
+          {
+            "status_code": 401,
+            "description": "Unauthorized"
+          },
+          {
+            "status_code": 403,
+            "description": "Forbidden"
+          },
+          {
+            "status_code": 404,
+            "description": "Not Found"
+          }
+        ]
+      }
+    ]
+  },
+  "ui_schema": {
+    "pages": [
+      {
+        "path": "/login",
+        "title": "Login",
+        "role_required": null,
+        "components": [
+          {
+            "name": "login-form",
+            "type": "form",
+            "props": {
+              "username": "",
+              "password": ""
+            },
+            "api_endpoint": "/users"
+          }
+        ],
+        "forms": [
+          {
+            "name": "login-form",
+            "fields": [
+              {
+                "name": "username",
+                "type": "text",
+                "label": "Username"
+              },
+              {
+                "name": "password",
+                "type": "password",
+                "label": "Password"
+              }
+            ],
+            "submit_endpoint": "/users"
+          }
+        ],
+        "navigation_links": [
+          {
+            "label": "Register",
+            "path": "/register",
+            "role_required": null
+          }
+        ]
+      },
+      {
+        "path": "/register",
+        "title": "Register",
+        "role_required": null,
+        "components": [
+          {
+            "name": "register-form",
+            "type": "form",
+            "props": {
+              "username": "",
+              "password": "",
+              "role": ""
+            },
+            "api_endpoint": "/users"
+          }
+        ],
+        "forms": [
+          {
+            "name": "register-form",
+            "fields": [
+              {
+                "name": "username",
+                "type": "text",
+                "label": "Username"
+              },
+              {
+                "name": "password",
+                "type": "password",
+                "label": "Password"
+              },
+              {
+                "name": "role",
+                "type": "select",
+                "label": "Role",
+                "options": [
+                  {
+                    "value": "Doctor",
+                    "label": "Doctor"
+                  },
+                  {
+                    "value": "Nurse",
+                    "label": "Nurse"
+                  },
+                  {
+                    "value": "Admin",
+                    "label": "Admin"
+                  }
+                ]
+              }
+            ],
+            "submit_endpoint": "/users"
+          }
+        ],
+        "navigation_links": [
+          {
+            "label": "Login",
+            "path": "/login",
+            "role_required": null
+          }
+        ]
+      },
+      {
+        "path": "/dashboard",
+        "title": "Dashboard",
+        "role_required": "Doctor",
+        "components": [
+          {
+            "name": "patient-list",
+            "type": "list",
+            "props": {
+              "patients": []
+            },
+            "api_endpoint": "/patients"
+          }
+        ],
+        "forms": [],
+        "navigation_links": [
+          {
+            "label": "Patient List",
+            "path": "/patients",
+            "role_required": "Doctor"
+          },
+          {
+            "label": "Clinical Notes",
+            "path": "/clinical-notes",
+            "role_required": "Doctor"
+          },
+          {
+            "label": "Appointments",
+            "path": "/appointments",
+            "role_required": "Doctor"
+          }
+        ]
+      },
+      {
+        "path": "/patients",
+        "title": "Patient List",
+        "role_required": "Doctor",
+        "components": [
+          {
+            "name": "patient-list",
+            "type": "list",
+            "props": {
+              "patients": []
+            },
+            "api_endpoint": "/patients"
+          }
+        ],
+        "forms": [],
+        "navigation_links": [
+          {
+            "label": "Create Patient",
+            "path": "/patients/create",
+            "role_required": "Doctor"
+          }
+        ]
+      },
+      {
+        "path": "/patients/create",
+        "title": "Create Patient",
+        "role_required": "Doctor",
+        "components": [
+          {
+            "name": "create-patient-form",
+            "type": "form",
+            "props": {
+              "name": "",
+              "date_of_birth": "",
+              "medical_history": ""
+            },
+            "api_endpoint": "/patients"
+          }
+        ],
+        "forms": [
+          {
+            "name": "create-patient-form",
+            "fields": [
+              {
+                "name": "name",
+                "type": "text",
+                "label": "Name"
+              },
+              {
+                "name": "date_of_birth",
+                "type": "date",
+                "label": "Date of Birth"
+              },
+              {
+                "name": "medical_history",
+                "type": "text",
+                "label": "Medical History"
+              }
+            ],
+            "submit_endpoint": "/patients"
+          }
+        ],
+        "navigation_links": [
+          {
+            "label": "Patient List",
+            "path": "/patients",
+            "role_required": "Doctor"
+          }
+        ]
+      },
+      {
+        "path": "/patients/:id",
+        "title": "Patient Detail",
+        "role_required": "Doctor",
+        "components": [
+          {
+            "name": "patient-detail",
+            "type": "detail",
+            "props": {
+              "patient": {}
+            },
+            "api_endpoint": "/patients/:id"
+          }
+        ],
+        "forms": [],
+        "navigation_links": [
+          {
+            "label": "Edit Patient",
+            "path": "/patients/:id/edit",
+            "role_required": "Doctor"
+          },
+          {
+            "label": "Clinical Notes",
+            "path": "/clinical-notes",
+            "role_required": "Doctor"
+          },
+          {
+            "label": "Appointments",
+            "path": "/appointments",
+            "role_required": "Doctor"
+          }
+        ]
+      },
+      {
+        "path": "/patients/:id/edit",
+        "title": "Edit Patient",
+        "role_required": "Doctor",
+        "components": [
+          {
+            "name": "edit-patient-form",
+            "type": "form",
+            "props": {
+              "name": "",
+              "date_of_birth": "",
+              "medical_history": ""
+            },
+            "api_endpoint": "/patients/:id"
+          }
+        ],
+        "forms": [
+          {
+            "name": "edit-patient-form",
+            "fields": [
+              {
+                "name": "name",
+                "type": "text",
+                "label": "Name"
+              },
+              {
+                "name": "date_of_birth",
+                "type": "date",
+                "label": "Date of Birth"
+              },
+              {
+                "name": "medical_history",
+                "type": "text",
+                "label": "Medical History"
+              }
+            ],
+            "submit_endpoint": "/patients/:id"
+          }
+        ],
+        "navigation_links": [
+          {
+            "label": "Patient Detail",
+            "path": "/patients/:id",
+            "role_required": "Doctor"
+          }
+        ]
+      },
+      {
+        "path": "/clinical-notes",
+        "title": "Clinical Notes",
+        "role_required": "Doctor",
+        "components": [
+          {
+            "name": "clinical-note-list",
+            "type": "list",
+            "props": {
+              "clinical_notes": []
+            },
+            "api_endpoint": "/clinical-notes"
+          }
+        ],
+        "forms": [],
+        "navigation_links": [
+          {
+            "label": "Create Clinical Note",
+            "path": "/clinical-notes/create",
+            "role_required": "Doctor"
+          }
+        ]
+      },
+      {
+        "path": "/clinical-notes/create",
+        "title": "Create Clinical Note",
+        "role_required": "Doctor",
+        "components": [
+          {
+            "name": "create-clinical-note-form",
+            "type": "form",
+            "props": {
+              "patient_id": "",
+              "note": ""
+            },
+            "api_endpoint": "/clinical-notes"
+          }
+        ],
+        "forms": [
+          {
+            "name": "create-clinical-note-form",
+            "fields": [
+              {
+                "name": "patient_id",
+                "type": "select",
+                "label": "Patient",
+                "options": []
+              },
+              {
+                "name": "note",
+                "type": "text",
+                "label": "Note"
+              }
+            ],
+            "submit_endpoint": "/clinical-notes"
+          }
+        ],
+        "navigation_links": [
+          {
+            "label": "Clinical Notes",
+            "path": "/clinical-notes",
+            "role_required": "Doctor"
+          }
+        ]
+      },
+      {
+        "path": "/appointments",
+        "title": "Appointments",
+        "role_required": "Doctor",
+        "components": [
+          {
+            "name": "appointment-list",
+            "type": "list",
+            "props": {
+              "appointments": []
+            },
+            "api_endpoint": "/appointments"
+          }
+        ],
+        "forms": [],
+        "navigation_links": [
+          {
+            "label": "Create Appointment",
+            "path": "/appointments/create",
+            "role_required": "Doctor"
+          }
+        ]
+      },
+      {
+        "path": "/appointments/create",
+        "title": "Create Appointment",
+        "role_required": "Doctor",
+        "components": [
+          {
+            "name": "create-appointment-form",
+            "type": "form",
+            "props": {
+              "patient_id": "",
+              "doctor_id": "",
+              "schedule": ""
+            },
+            "api_endpoint": "/appointments"
+          }
+        ],
+        "forms": [
+          {
+            "name": "create-appointment-form",
+            "fields": [
+              {
+                "name": "patient_id",
+                "type": "select",
+                "label": "Patient",
+                "options": []
+              },
+              {
+                "name": "doctor_id",
+                "type": "select",
+                "label": "Doctor",
+                "options": []
+              },
+              {
+                "name": "schedule",
+                "type": "datetime",
+                "label": "Schedule"
+              }
+            ],
+            "submit_endpoint": "/appointments"
+          }
+        ],
+        "navigation_links": [
+          {
+            "label": "Appointments",
+            "path": "/appointments",
+            "role_required": "Doctor"
+          }
+        ]
+      }
+    ]
+  },
+  "auth_schema": {
+    "auth_strategy": "jwt",
+    "roles": [
+      "Doctor",
+      "Nurse",
+      "Admin"
+    ],
+    "permissions_matrix": {
+      "Doctor": {
+        "User": [
+          "read",
+          "update"
+        ],
+        "Patient": [
+          "create",
+          "read",
+          "update",
+          "delete"
+        ],
+        "ClinicalNote": [
+          "create",
+          "read",
+          "update",
+          "delete"
+        ],
+        "Appointment": [
+          "create",
+          "read",
+          "update",
+          "delete"
+        ]
+      },
+      "Nurse": {
+        "User": [
+          "read"
+        ],
+        "Patient": [
+          "read"
+        ],
+        "ClinicalNote": [
+          "read"
+        ],
+        "Appointment": [
+          "read"
+        ]
+      },
+      "Admin": {
+        "User": [
+          "create",
+          "read",
+          "update",
+          "delete"
+        ],
+        "Patient": [
+          "create",
+          "read",
+          "update",
+          "delete"
+        ],
+        "ClinicalNote": [
+          "create",
+          "read",
+          "update",
+          "delete"
+        ],
+        "Appointment": [
+          "create",
+          "read",
+          "update",
+          "delete"
+        ]
+      }
+    },
+    "premium_plan_gates": {
+      "Basic": {
+        "features": [
+          "view patient list",
+          "view patient detail"
+        ],
+        "restrictions": [
+          "create clinical note",
+          "schedule appointment"
+        ]
+      },
+      "Premium": {
+        "features": [
+          "create clinical note",
+          "schedule appointment",
+          "view patient list",
+          "view patient detail"
+        ],
+        "restrictions": []
+      }
+    },
+    "token_config": {
+      "expiry_seconds": 3600,
+      "refresh_expiry_seconds": 86400,
+      "algorithm": "HS256"
+    }
+  },
+  "validation_report": {
+    "is_valid": false,
+    "errors": [
+      {
+        "layer": "DB",
+        "field": "User_Appointment",
+        "description": "The table User_Appointment has a foreign key to the User table, but the User table does not have a corresponding foreign key to the User_Appointment table."
+      },
+      {
+        "layer": "DB",
+        "field": "User_ClinicalNote",
+        "description": "The table User_ClinicalNote has a foreign key to the ClinicalNote table, but the ClinicalNote table does not have a corresponding foreign key to the User_ClinicalNote table."
+      },
+      {
+        "layer": "API",
+        "field": "/users/{id}",
+        "description": "The endpoint /users/{id} does not have a validation rule to check if the user exists before updating or deleting."
+      },
+      {
+        "layer": "API",
+        "field": "/patients/{id}",
+        "description": "The endpoint /patients/{id} does not have a validation rule to check if the patient exists before updating or deleting."
+      },
+      {
+        "layer": "API",
+        "field": "/clinical-notes/{id}",
+        "description": "The endpoint /clinical-notes/{id} does not have a validation rule to check if the clinical note exists before updating or deleting."
+      },
+      {
+        "layer": "API",
+        "field": "/appointments/{id}",
+        "description": "The endpoint /appointments/{id} does not have a validation rule to check if the appointment exists before updating or deleting."
+      },
+      {
+        "layer": "UI",
+        "field": "/patients/create",
+        "description": "The form on the page /patients/create does not have a validation rule to check if the patient's date of birth is valid."
+      },
+      {
+        "layer": "UI",
+        "field": "/clinical-notes/create",
+        "description": "The form on the page /clinical-notes/create does not have a validation rule to check if the clinical note's patient id is valid."
+      },
+      {
+        "layer": "UI",
+        "field": "/appointments/create",
+        "description": "The form on the page /appointments/create does not have a validation rule to check if the appointment's patient id and doctor id are valid."
+      },
+      {
+        "layer": "Auth",
+        "field": "permissions_matrix",
+        "description": "The permissions matrix does not define the permissions for the Nurse role to view clinical notes and appointments."
+      },
+      {
+        "layer": "Auth",
+        "field": "premium_plan_gates",
+        "description": "The premium plan gates do not define the features and restrictions for the Basic and Premium plans."
+      }
+    ],
+    "warnings": [
+      {
+        "layer": "DB",
+        "field": "User",
+        "description": "The table User has a column soft_deleted_at, but it is not used in any of the endpoints or forms."
+      },
+      {
+        "layer": "DB",
+        "field": "Patient",
+        "description": "The table Patient has a column soft_deleted_at, but it is not used in any of the endpoints or forms."
+      },
+      {
+        "layer": "DB",
+        "field": "ClinicalNote",
+        "description": "The table ClinicalNote has a column soft_deleted_at, but it is not used in any of the endpoints or forms."
+      },
+      {
+        "layer": "DB",
+        "field": "Appointment",
+        "description": "The table Appointment has a column soft_deleted_at, but it is not used in any of the endpoints or forms."
+      }
+    ],
+    "conflicts": [
+      {
+        "description": "The endpoint /users/{id} has a conflict with the endpoint /patients/{id} because they both update the user's information.",
+        "resolution_strategy": "Merge the two endpoints into one endpoint that updates both the user's and patient's information."
+      },
+      {
+        "description": "The form on the page /patients/create has a conflict with the form on the page /clinical-notes/create because they both create a new patient.",
+        "resolution_strategy": "Remove the form on the page /clinical-notes/create and use the form on the page /patients/create to create a new patient."
+      }
+    ],
+    "validated_at": "2024-09-16T14:30:00.000Z"
+  },
+  "repair_report": {
+    "repairs": [
+      {
+        "error_description": "The table User_Appointment has a foreign key to the User table, but the User table does not have a corresponding foreign key to the User_Appointment table.",
+        "layer_fixed": "DB",
+        "field_fixed": "User",
+        "before": {
+          "name": "User",
+          "columns": [
+            {
+              "name": "id",
+              "data_type": "UUID",
+              "nullable": false,
+              "constraints": [
+                "PRIMARY KEY"
+              ]
+            },
+            {
+              "name": "username",
+              "data_type": "VARCHAR(255)",
+              "nullable": false,
+              "constraints": [
+                "UNIQUE"
+              ]
+            },
+            {
+              "name": "password",
+              "data_type": "VARCHAR(255)",
+              "nullable": false,
+              "constraints": []
+            },
+            {
+              "name": "role",
+              "data_type": "VARCHAR(255)",
+              "nullable": false,
+              "constraints": []
+            },
+            {
+              "name": "created_at",
+              "data_type": "TIMESTAMP",
+              "nullable": false,
+              "constraints": []
+            },
+            {
+              "name": "updated_at",
+              "data_type": "TIMESTAMP",
+              "nullable": false,
+              "constraints": []
+            },
+            {
+              "name": "soft_deleted_at",
+              "data_type": "TIMESTAMP",
+              "nullable": true,
+              "constraints": []
+            }
+          ],
+          "primary_key": "id",
+          "foreign_keys": [],
+          "indexes": [
+            {
+              "name": "username_index",
+              "columns": [
+                "username"
+              ],
+              "unique": true
+            }
+          ],
+          "relations": []
+        },
+        "after": {
+          "name": "User",
+          "columns": [
+            {
+              "name": "id",
+              "data_type": "UUID",
+              "nullable": false,
+              "constraints": [
+                "PRIMARY KEY"
+              ]
+            },
+            {
+              "name": "username",
+              "data_type": "VARCHAR(255)",
+              "nullable": false,
+              "constraints": [
+                "UNIQUE"
+              ]
+            },
+            {
+              "name": "password",
+              "data_type": "VARCHAR(255)",
+              "nullable": false,
+              "constraints": []
+            },
+            {
+              "name": "role",
+              "data_type": "VARCHAR(255)",
+              "nullable": false,
+              "constraints": []
+            },
+            {
+              "name": "created_at",
+              "data_type": "TIMESTAMP",
+              "nullable": false,
+              "constraints": []
+            },
+            {
+              "name": "updated_at",
+              "data_type": "TIMESTAMP",
+              "nullable": false,
+              "constraints": []
+            },
+            {
+              "name": "soft_deleted_at",
+              "data_type": "TIMESTAMP",
+              "nullable": true,
+              "constraints": []
+            }
+          ],
+          "primary_key": "id",
+          "foreign_keys": [
+            {
+              "column": "id",
+              "references_table": "User_Appointment",
+              "references_column": "user_id",
+              "on_delete": "CASCADE"
+            }
+          ],
+          "indexes": [
+            {
+              "name": "username_index",
+              "columns": [
+                "username"
+              ],
+              "unique": true
+            }
+          ],
+          "relations": []
+        }
+      },
+      {
+        "error_description": "The table User_ClinicalNote has a foreign key to the ClinicalNote table, but the ClinicalNote table does not have a corresponding foreign key to the User_ClinicalNote table.",
+        "layer_fixed": "DB",
+        "field_fixed": "ClinicalNote",
+        "before": {
+          "name": "ClinicalNote",
+          "columns": [
+            {
+              "name": "id",
+              "data_type": "UUID",
+              "nullable": false,
+              "constraints": [
+                "PRIMARY KEY"
+              ]
+            },
+            {
+              "name": "patient_id",
+              "data_type": "UUID",
+              "nullable": false,
+              "constraints": []
+            },
+            {
+              "name": "note",
+              "data_type": "TEXT",
+              "nullable": false,
+              "constraints": []
+            },
+            {
+              "name": "created_at",
+              "data_type": "TIMESTAMP",
+              "nullable": false,
+              "constraints": []
+            },
+            {
+              "name": "updated_at",
+              "data_type": "TIMESTAMP",
+              "nullable": false,
+              "constraints": []
+            },
+            {
+              "name": "soft_deleted_at",
+              "data_type": "TIMESTAMP",
+              "nullable": true,
+              "constraints": []
+            }
+          ],
+          "primary_key": "id",
+          "foreign_keys": [
+            {
+              "column": "patient_id",
+              "references_table": "Patient",
+              "references_column": "id",
+              "on_delete": "CASCADE"
+            }
+          ],
+          "indexes": [
+            {
+              "name": "patient_id_index",
+              "columns": [
+                "patient_id"
+              ],
+              "unique": false
+            }
+          ],
+          "relations": [
+            {
+              "type": "one-to-many",
+              "table": "Patient"
+            }
+          ]
+        },
+        "after": {
+          "name": "ClinicalNote",
+          "columns": [
+            {
+              "name": "id",
+              "data_type": "UUID",
+              "nullable": false,
+              "constraints": [
+                "PRIMARY KEY"
+              ]
+            },
+            {
+              "name": "patient_id",
+              "data_type": "UUID",
+              "nullable": false,
+              "constraints": []
+            },
+            {
+              "name": "note",
+              "data_type": "TEXT",
+              "nullable": false,
+              "constraints": []
+            },
+            {
+              "name": "created_at",
+              "data_type": "TIMESTAMP",
+              "nullable": false,
+              "constraints": []
+            },
+            {
+              "name": "updated_at",
+              "data_type": "TIMESTAMP",
+              "nullable": false,
+              "constraints": []
+            },
+            {
+              "name": "soft_deleted_at",
+              "data_type": "TIMESTAMP",
+              "nullable": true,
+              "constraints": []
+            }
+          ],
+          "primary_key": "id",
+          "foreign_keys": [
+            {
+              "column": "patient_id",
+              "references_table": "Patient",
+              "references_column": "id",
+              "on_delete": "CASCADE"
+            },
+            {
+              "column": "id",
+              "references_table": "User_ClinicalNote",
+              "references_column": "clinical_note_id",
+              "on_delete": "CASCADE"
+            }
+          ],
+          "indexes": [
+            {
+              "name": "patient_id_index",
+              "columns": [
+                "patient_id"
+              ],
+              "unique": false
+            }
+          ],
+          "relations": [
+            {
+              "type": "one-to-many",
+              "table": "Patient"
+            }
+          ]
+        }
+      },
+      {
+        "error_description": "The endpoint /users/{id} does not have a validation rule to check if the user exists before updating or deleting.",
+        "layer_fixed": "API",
+        "field_fixed": "/users/{id}",
+        "before": {
+          "method": "GET",
+          "path": "/users/{id}",
+          "request_body": null,
+          "response_body": {
+            "id": "UUID",
+            "username": "VARCHAR(255)",
+            "role": "VARCHAR(255)",
+            "created_at": "TIMESTAMP",
+            "updated_at": "TIMESTAMP"
+          },
+          "auth_required": true,
+          "required_role": "Admin",
+          "validation_rules": []
+        },
+        "after": {
+          "method": "GET",
+          "path": "/users/{id}",
+          "request_body": null,
+          "response_body": {
+            "id": "UUID",
+            "username": "VARCHAR(255)",
+            "role": "VARCHAR(255)",
+            "created_at": "TIMESTAMP",
+            "updated_at": "TIMESTAMP"
+          },
+          "auth_required": true,
+          "required_role": "Admin",
+          "validation_rules": [
+            "user exists"
+          ]
+        }
+      },
+      {
+        "error_description": "The endpoint /patients/{id} does not have a validation rule to check if the patient exists before updating or deleting.",
+        "layer_fixed": "API",
+        "field_fixed": "/patients/{id}",
+        "before": {
+          "method": "GET",
+          "path": "/patients/{id}",
+          "request_body": null,
+          "response_body": {
+            "id": "UUID",
+            "name": "VARCHAR(255)",
+            "date_of_birth": "DATE",
+            "medical_history": "TEXT",
+            "created_at": "TIMESTAMP",
+            "updated_at": "TIMESTAMP"
+          },
+          "auth_required": true,
+          "required_role": "Doctor",
+          "validation_rules": []
+        },
+        "after": {
+          "method": "GET",
+          "path": "/patients/{id}",
+          "request_body": null,
+          "response_body": {
+            "id": "UUID",
+            "name": "VARCHAR(255)",
+            "date_of_birth": "DATE",
+            "medical_history": "TEXT",
+            "created_at": "TIMESTAMP",
+            "updated_at": "TIMESTAMP"
+          },
+          "auth_required": true,
+          "required_role": "Doctor",
+          "validation_rules": [
+            "patient exists"
+          ]
+        }
+      },
+      {
+        "error_description": "The endpoint /clinical-notes/{id} does not have a validation rule to check if the clinical note exists before updating or deleting.",
+        "layer_fixed": "API",
+        "field_fixed": "/clinical-notes/{id}",
+        "before": {
+          "method": "GET",
+          "path": "/clinical-notes/{id}",
+          "request_body": null,
+          "response_body": {
+            "id": "UUID",
+            "patient_id": "UUID",
+            "note": "TEXT",
+            "created_at": "TIMESTAMP",
+            "updated_at": "TIMESTAMP"
+          },
+          "auth_required": true,
+          "required_role": "Doctor",
+          "validation_rules": []
+        },
+        "after": {
+          "method": "GET",
+          "path": "/clinical-notes/{id}",
+          "request_body": null,
+          "response_body": {
+            "id": "UUID",
+            "patient_id": "UUID",
+            "note": "TEXT",
+            "created_at": "TIMESTAMP",
+            "updated_at": "TIMESTAMP"
+          },
+          "auth_required": true,
+          "required_role": "Doctor",
+          "validation_rules": [
+            "clinical note exists"
+          ]
+        }
+      },
+      {
+        "error_description": "The endpoint /appointments/{id} does not have a validation rule to check if the appointment exists before updating or deleting.",
+        "layer_fixed": "API",
+        "field_fixed": "/appointments/{id}",
+        "before": {
+          "method": "GET",
+          "path": "/appointments/{id}",
+          "request_body": null,
+          "response_body": {
+            "id": "UUID",
+            "patient_id": "UUID",
+            "doctor_id": "UUID",
+            "schedule": "TIMESTAMP",
+            "created_at": "TIMESTAMP",
+            "updated_at": "TIMESTAMP"
+          },
+          "auth_required": true,
+          "required_role": "Doctor",
+          "validation_rules": []
+        },
+        "after": {
+          "method": "GET",
+          "path": "/appointments/{id}",
+          "request_body": null,
+          "response_body": {
+            "id": "UUID",
+            "patient_id": "UUID",
+            "doctor_id": "UUID",
+            "schedule": "TIMESTAMP",
+            "created_at": "TIMESTAMP",
+            "updated_at": "TIMESTAMP"
+          },
+          "auth_required": true,
+          "required_role": "Doctor",
+          "validation_rules": [
+            "appointment exists"
+          ]
+        }
+      },
+      {
+        "error_description": "The form on the page /patients/create does not have a validation rule to check if the patient's date of birth is valid.",
+        "layer_fixed": "UI",
+        "field_fixed": "/patients/create",
+        "before": {
+          "path": "/patients/create",
+          "title": "Create Patient",
+          "role_required": "Doctor",
+          "components": [
+            {
+              "name": "create-patient-form",
+              "type": "form",
+              "api_endpoint": "/patients"
+            }
+          ],
+          "forms": [
+            {
+              "name": "create-patient-form",
+              "fields": [
+                {
+                  "name": "name",
+                  "type": "text",
+                  "label": "Name"
+                },
+                {
+                  "name": "date_of_birth",
+                  "type": "date",
+                  "label": "Date of Birth"
+                },
+                {
+                  "name": "medical_history",
+                  "type": "text",
+                  "label": "Medical History"
+                }
+              ],
+              "submit_endpoint": "/patients"
+            }
+          ]
+        },
+        "after": {
+          "path": "/patients/create",
+          "title": "Create Patient",
+          "role_required": "Doctor",
+          "components": [
+            {
+              "name": "create-patient-form",
+              "type": "form",
+              "api_endpoint": "/patients"
+            }
+          ],
+          "forms": [
+            {
+              "name": "create-patient-form",
+              "fields": [
+                {
+                  "name": "name",
+                  "type": "text",
+                  "label": "Name"
+                },
+                {
+                  "name": "date_of_birth",
+                  "type": "date",
+                  "label": "Date of Birth",
+                  "validation_rules": [
+                    "date of birth is valid"
+                  ]
+                },
+                {
+                  "name": "medical_history",
+                  "type": "text",
+                  "label": "Medical History"
+                }
+              ],
+              "submit_endpoint": "/patients"
+            }
+          ]
+        }
+      },
+      {
+        "error_description": "The form on the page /clinical-notes/create does not have a validation rule to check if the clinical note's patient id is valid.",
+        "layer_fixed": "UI",
+        "field_fixed": "/clinical-notes/create",
+        "before": {
+          "path": "/clinical-notes/create",
+          "title": "Create Clinical Note",
+          "role_required": "Doctor",
+          "components": [
+            {
+              "name": "create-clinical-note-form",
+              "type": "form",
+              "api_endpoint": "/clinical-notes"
+            }
+          ],
+          "forms": [
+            {
+              "name": "create-clinical-note-form",
+              "fields": [
+                {
+                  "name": "patient_id",
+                  "type": "select",
+                  "label": "Patient"
+                },
+                {
+                  "name": "note",
+                  "type": "text",
+                  "label": "Note"
+                }
+              ],
+              "submit_endpoint": "/clinical-notes"
+            }
+          ]
+        },
+        "after": {
+          "path": "/clinical-notes/create",
+          "title": "Create Clinical Note",
+          "role_required": "Doctor",
+          "components": [
+            {
+              "name": "create-clinical-note-form",
+              "type": "form",
+              "api_endpoint": "/clinical-notes"
+            }
+          ],
+          "forms": [
+            {
+              "name": "create-clinical-note-form",
+              "fields": [
+                {
+                  "name": "patient_id",
+                  "type": "select",
+                  "label": "Patient",
+                  "validation_rules": [
+                    "patient id is valid"
+                  ]
+                },
+                {
+                  "name": "note",
+                  "type": "text",
+                  "label": "Note"
+                }
+              ],
+              "submit_endpoint": "/clinical-notes"
+            }
+          ]
+        }
+      },
+      {
+        "error_description": "The form on the page /appointments/create does not have a validation rule to check if the appointment's patient id and doctor id are valid.",
+        "layer_fixed": "UI",
+        "field_fixed": "/appointments/create",
+        "before": {
+          "path": "/appointments/create",
+          "title": "Create Appointment",
+          "role_required": "Doctor",
+          "components": [
+            {
+              "name": "create-appointment-form",
+              "type": "form",
+              "api_endpoint": "/appointments"
+            }
+          ],
+          "forms": [
+            {
+              "name": "create-appointment-form",
+              "fields": [
+                {
+                  "name": "patient_id",
+                  "type": "select",
+                  "label": "Patient"
+                },
+                {
+                  "name": "doctor_id",
+                  "type": "select",
+                  "label": "Doctor"
+                },
+                {
+                  "name": "schedule",
+                  "type": "datetime",
+                  "label": "Schedule"
+                }
+              ],
+              "submit_endpoint": "/appointments"
+            }
+          ]
+        },
+        "after": {
+          "path": "/appointments/create",
+          "title": "Create Appointment",
+          "role_required": "Doctor",
+          "components": [
+            {
+              "name": "create-appointment-form",
+              "type": "form",
+              "api_endpoint": "/appointments"
+            }
+          ],
+          "forms": [
+            {
+              "name": "create-appointment-form",
+              "fields": [
+                {
+                  "name": "patient_id",
+                  "type": "select",
+                  "label": "Patient",
+                  "validation_rules": [
+                    "patient id is valid"
+                  ]
+                },
+                {
+                  "name": "doctor_id",
+                  "type": "select",
+                  "label": "Doctor",
+                  "validation_rules": [
+                    "doctor id is valid"
+                  ]
+                },
+                {
+                  "name": "schedule",
+                  "type": "datetime",
+                  "label": "Schedule"
+                }
+              ],
+              "submit_endpoint": "/appointments"
+            }
+          ]
+        }
+      },
+      {
+        "error_description": "The permissions matrix does not define the permissions for the Nurse role to view clinical notes and appointments.",
+        "layer_fixed": "Auth",
+        "field_fixed": "permissions_matrix",
+        "before": {
+          "auth_strategy": "jwt",
+          "roles": [
+            "Doctor",
+            "Nurse",
+            "Admin"
+          ],
+          "permissions_matrix": {
+            "Doctor": {
+              "User": [
+                "read",
+                "update"
+              ],
+              "Patient": [
+                "create",
+                "read",
+                "update",
+                "delete"
+              ],
+              "ClinicalNote": [
+                "create",
+                "read",
+                "update",
+                "delete"
+              ],
+              "Appointment": [
+                "create",
+                "read",
+                "update",
+                "delete"
+              ]
+            },
+            "Admin": {
+              "User": [
+                "create",
+                "read",
+                "update",
+                "delete"
+              ],
+              "Patient": [
+                "create",
+                "read",
+                "update",
+                "delete"
+              ],
+              "ClinicalNote": [
+                "create",
+                "read",
+                "update",
+                "delete"
+              ],
+              "Appointment": [
+                "create",
+                "read",
+                "update",
+                "delete"
+              ]
+            }
+          },
+          "premium_plan_gates": {
+            "Basic": {
+              "features": [
+                "view patient list",
+                "view patient detail"
+              ],
+              "restrictions": [
+                "create clinical note",
+                "schedule appointment"
+              ]
+            },
+            "Premium": {
+              "features": [
+                "create clinical note",
+                "schedule appointment",
+                "view patient list",
+                "view patient detail"
+              ]
+            }
+          }
+        }
+      }
+    ]
+  },
+  "runtime_report": {
+    "execution_viable": false,
+    "simulated_flows": [
+      {
+        "name": "CREATE Patient",
+        "steps": [
+          {
+            "step": "Form submission",
+            "status": "Success"
+          },
+          {
+            "step": "API call to /patients",
+            "status": "Success"
+          },
+          {
+            "step": "Database insertion",
+            "status": "Success"
+          }
+        ],
+        "result": "Success"
+      },
+      {
+        "name": "READ Patient",
+        "steps": [
+          {
+            "step": "API call to /patients/{id}",
+            "status": "Success"
+          },
+          {
+            "step": "Database query",
+            "status": "Success"
+          },
+          {
+            "step": "Response sent to client",
+            "status": "Success"
+          }
+        ],
+        "result": "Success"
+      },
+      {
+        "name": "UPDATE Patient",
+        "steps": [
+          {
+            "step": "Form submission",
+            "status": "Success"
+          },
+          {
+            "step": "API call to /patients/{id}",
+            "status": "Success"
+          },
+          {
+            "step": "Database update",
+            "status": "Success"
+          }
+        ],
+        "result": "Success"
+      },
+      {
+        "name": "DELETE Patient",
+        "steps": [
+          {
+            "step": "API call to /patients/{id}",
+            "status": "Success"
+          },
+          {
+            "step": "Database soft deletion",
+            "status": "Success"
+          }
+        ],
+        "result": "Success"
+      }
+    ],
+    "blocking_issues": [
+      "The permissions matrix does not define the permissions for the Nurse role to view clinical notes and appointments.",
+      "The premium plan gates do not define the features and restrictions for the Basic and Premium plans."
+    ],
+    "warnings": [
+      "The table User has a column soft_deleted_at, but it is not used in any of the endpoints or forms.",
+      "The table Patient has a column soft_deleted_at, but it is not used in any of the endpoints or forms.",
+      "The table ClinicalNote has a column soft_deleted_at, but it is not used in any of the endpoints or forms.",
+      "The table Appointment has a column soft_deleted_at, but it is not used in any of the endpoints or forms."
+    ]
+  },
+  "workflow_stubs": [],
+  "integration_hooks": [],
+  "app_spec": {
+    "meta": {
+      "app_name": "Medical Notion",
+      "app_type": "custom",
+      "description": "Build something like Notion for doctors.",
+      "features": [],
+      "assumptions": [
+        "The application is for medical professionals",
+        "Notion is used as a reference for the type of application"
+      ]
+    },
+    "entities": [
+      {
+        "name": "User",
+        "table_name": "User",
+        "fields": [
+          "id",
+          "username",
+          "password",
+          "role",
+          "created_at",
+          "updated_at",
+          "soft_deleted_at"
+        ],
+        "relations": []
+      },
+      {
+        "name": "Patient",
+        "table_name": "Patient",
+        "fields": [
+          "id",
+          "name",
+          "date_of_birth",
+          "medical_history",
+          "created_at",
+          "updated_at",
+          "soft_deleted_at"
+        ],
+        "relations": []
+      },
+      {
+        "name": "ClinicalNote",
+        "table_name": "ClinicalNote",
+        "fields": [
+          "id",
+          "patient_id",
+          "note",
+          "created_at",
+          "updated_at",
+          "soft_deleted_at"
+        ],
+        "relations": [
+          "belongs to Patient via patient_id"
+        ]
+      },
+      {
+        "name": "Appointment",
+        "table_name": "Appointment",
+        "fields": [
+          "id",
+          "patient_id",
+          "doctor_id",
+          "schedule",
+          "created_at",
+          "updated_at",
+          "soft_deleted_at"
+        ],
+        "relations": [
+          "belongs to Patient via patient_id",
+          "belongs to User via doctor_id"
+        ]
+      }
+    ],
+    "pages": [
+      {
+        "path": "/login",
+        "title": "Login",
+        "role_required": null,
+        "layout": "list",
+        "bound_entity": null
+      },
+      {
+        "path": "/register",
+        "title": "Register",
+        "role_required": null,
+        "layout": "list",
+        "bound_entity": null
+      },
+      {
+        "path": "/dashboard",
+        "title": "Dashboard",
+        "role_required": "Doctor",
+        "layout": "dashboard",
+        "bound_entity": null
+      },
+      {
+        "path": "/patients",
+        "title": "Patient List",
+        "role_required": "Doctor",
+        "layout": "list",
+        "bound_entity": "Patient"
+      },
+      {
+        "path": "/patients/create",
+        "title": "Create Patient",
+        "role_required": "Doctor",
+        "layout": "list",
+        "bound_entity": "Patient"
+      },
+      {
+        "path": "/patients/:id",
+        "title": "Patient Detail",
+        "role_required": "Doctor",
+        "layout": "detail",
+        "bound_entity": "Patient"
+      },
+      {
+        "path": "/patients/:id/edit",
+        "title": "Edit Patient",
+        "role_required": "Doctor",
+        "layout": "detail",
+        "bound_entity": "Patient"
+      },
+      {
+        "path": "/clinical-notes",
+        "title": "Clinical Notes",
+        "role_required": "Doctor",
+        "layout": "list",
+        "bound_entity": null
+      },
+      {
+        "path": "/clinical-notes/create",
+        "title": "Create Clinical Note",
+        "role_required": "Doctor",
+        "layout": "list",
+        "bound_entity": null
+      },
+      {
+        "path": "/appointments",
+        "title": "Appointments",
+        "role_required": "Doctor",
+        "layout": "list",
+        "bound_entity": "Appointment"
+      },
+      {
+        "path": "/appointments/create",
+        "title": "Create Appointment",
+        "role_required": "Doctor",
+        "layout": "list",
+        "bound_entity": "Appointment"
+      }
+    ],
+    "api_endpoints": [
+      {
+        "method": "GET",
+        "path": "/users",
+        "auth_required": true,
+        "required_role": "Admin",
+        "handler_description": "Get a list of users",
+        "rate_limit_flag": false
+      },
+      {
+        "method": "GET",
+        "path": "/users/{id}",
+        "auth_required": true,
+        "required_role": "Admin",
+        "handler_description": "Get a user by id",
+        "rate_limit_flag": false
+      },
+      {
+        "method": "POST",
+        "path": "/users",
+        "auth_required": true,
+        "required_role": "Admin",
+        "handler_description": "Create a new user",
+        "rate_limit_flag": true
+      },
+      {
+        "method": "PUT",
+        "path": "/users/{id}",
+        "auth_required": true,
+        "required_role": "Admin",
+        "handler_description": "Update a user",
+        "rate_limit_flag": true
+      },
+      {
+        "method": "DELETE",
+        "path": "/users/{id}",
+        "auth_required": true,
+        "required_role": "Admin",
+        "handler_description": "Delete a user",
+        "rate_limit_flag": false
+      },
+      {
+        "method": "GET",
+        "path": "/patients",
+        "auth_required": true,
+        "required_role": "Doctor",
+        "handler_description": "Get a list of patients",
+        "rate_limit_flag": false
+      },
+      {
+        "method": "GET",
+        "path": "/patients/{id}",
+        "auth_required": true,
+        "required_role": "Doctor",
+        "handler_description": "Get a patient by id",
+        "rate_limit_flag": false
+      },
+      {
+        "method": "POST",
+        "path": "/patients",
+        "auth_required": true,
+        "required_role": "Doctor",
+        "handler_description": "Create a new patient",
+        "rate_limit_flag": false
+      },
+      {
+        "method": "PUT",
+        "path": "/patients/{id}",
+        "auth_required": true,
+        "required_role": "Doctor",
+        "handler_description": "Update a patient",
+        "rate_limit_flag": false
+      },
+      {
+        "method": "DELETE",
+        "path": "/patients/{id}",
+        "auth_required": true,
+        "required_role": "Doctor",
+        "handler_description": "Delete a patient",
+        "rate_limit_flag": false
+      },
+      {
+        "method": "GET",
+        "path": "/clinical-notes",
+        "auth_required": true,
+        "required_role": "Doctor",
+        "handler_description": "Get a list of clinical notes",
+        "rate_limit_flag": false
+      },
+      {
+        "method": "GET",
+        "path": "/clinical-notes/{id}",
+        "auth_required": true,
+        "required_role": "Doctor",
+        "handler_description": "Get a clinical note by id",
+        "rate_limit_flag": false
+      },
+      {
+        "method": "POST",
+        "path": "/clinical-notes",
+        "auth_required": true,
+        "required_role": "Doctor",
+        "handler_description": "Create a new clinical note",
+        "rate_limit_flag": false
+      },
+      {
+        "method": "PUT",
+        "path": "/clinical-notes/{id}",
+        "auth_required": true,
+        "required_role": "Doctor",
+        "handler_description": "Update a clinical note",
+        "rate_limit_flag": false
+      },
+      {
+        "method": "DELETE",
+        "path": "/clinical-notes/{id}",
+        "auth_required": true,
+        "required_role": "Doctor",
+        "handler_description": "Delete a clinical note",
+        "rate_limit_flag": false
+      },
+      {
+        "method": "GET",
+        "path": "/appointments",
+        "auth_required": true,
+        "required_role": "Doctor",
+        "handler_description": "Get a list of appointments",
+        "rate_limit_flag": false
+      },
+      {
+        "method": "GET",
+        "path": "/appointments/{id}",
+        "auth_required": true,
+        "required_role": "Doctor",
+        "handler_description": "Get an appointment by id",
+        "rate_limit_flag": false
+      },
+      {
+        "method": "POST",
+        "path": "/appointments",
+        "auth_required": true,
+        "required_role": "Doctor",
+        "handler_description": "Create a new appointment",
+        "rate_limit_flag": false
+      },
+      {
+        "method": "PUT",
+        "path": "/appointments/{id}",
+        "auth_required": true,
+        "required_role": "Doctor",
+        "handler_description": "Update an appointment",
+        "rate_limit_flag": false
+      },
+      {
+        "method": "DELETE",
+        "path": "/appointments/{id}",
+        "auth_required": true,
+        "required_role": "Doctor",
+        "handler_description": "Delete an appointment",
+        "rate_limit_flag": false
+      }
+    ],
+    "auth_rules": {
+      "auth_strategy": "jwt",
+      "roles": [
+        "Doctor",
+        "Nurse",
+        "Admin"
+      ]
+    },
+    "integration_hooks": [],
+    "workflow_stubs": []
+  },
+  "repair_log": [
+    {
+      "attempt_number": 1,
+      "strategy": "CONSISTENCY",
+      "error_input": "The table User_Appointment has a foreign key to the User table, but the User table does not have a corresponding foreign key to the User_Appointment table.; The table User_ClinicalNote has a foreign key to the ClinicalNote table, but the ClinicalNote table does not have a corresponding foreign key to the User_ClinicalNote table.; The endpoint /users/{id} does not have a validation rule to check if the user exists before updating or deleting.",
+      "outcome": "repaired",
+      "errors_before": 11,
+      "errors_after": 0
+    },
+    {
+      "attempt_number": 2,
+      "strategy": "ESCALATED",
+      "error_input": "The table User_Appointment has a foreign key to the User table, but the User table does not have a corresponding foreign key to the User_Appointment table.; The table User_ClinicalNote has a foreign key to the ClinicalNote table, but the ClinicalNote table does not have a corresponding foreign key to the User_ClinicalNote table.; The endpoint /users/{id} does not have a validation rule to check if the user exists before updating or deleting.",
+      "outcome": "escalated",
+      "errors_before": 11,
+      "errors_after": 0
+    },
+    {
+      "attempt_number": 3,
+      "strategy": "ESCALATED",
+      "error_input": "The table User_Appointment has a foreign key to the User table, but the User table does not have a corresponding foreign key to the User_Appointment table.; The table User_ClinicalNote has a foreign key to the ClinicalNote table, but the ClinicalNote table does not have a corresponding foreign key to the User_ClinicalNote table.; The endpoint /users/{id} does not have a validation rule to check if the user exists before updating or deleting.",
+      "outcome": "escalated",
+      "errors_before": 11,
+      "errors_after": 0
+    }
+  ],
+  "mermaid_diagrams": {
+    "pipeline_flow": "%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#2a2520', 'primaryTextColor': '#f7f6f3', 'primaryBorderColor': '#e86d2a', 'lineColor': '#ef8a52'}}}%%\ngraph LR\n    intent_extraction -->|40718ms| architecture_design\n    architecture_design -->|2719ms| db_schema\n    db_schema -->|5485ms| api_schema\n    api_schema -->|6233ms| ui_schema\n    ui_schema -->|3983ms| auth_schema\n    auth_schema -->|1764ms| workflow_stubs\n    workflow_stubs -->|0ms| validation\n    validation -->|61562ms| repair\n    repair -->|9266ms| runtime_validation",
+    "er_diagram": "erDiagram\n    TABLES {\n        {6 keys} ||--o{6 keys} : has\n        {6 keys} |o--|| {6 keys} : has\n        {6 keys} ||--|{6 keys} : has\n        {6 keys} |o--|{6 keys} : has\n        {6 keys} ||--o{6 keys} : has\n        {6 keys} |o--|| {6 keys} : has\n    }",
+    "api_sequence": "sequenceDiagram\n    participant Client as Client\n    participant API as API\n    participant Database as Database\n    Client->>API: Request to create patient\n    API->>Database: Insert patient data\n    Database-->>API: Patient data inserted\n    API-->>Client: Patient created successfully\n    Client->>API: Request to read patient data\n    API->>Database: Retrieve patient data\n    Database-->>API: Patient data retrieved\n    API-->>Client: Patient data sent"
+  },
+  "eval_metrics": {
+    "total_latency_ms": 243796,
+    "total_tokens": 27958,
+    "repair_count": 3,
+    "hitl_count": 1,
+    "stage_latencies": {
+      "intent_extraction": 40718,
+      "architecture_design": 2719,
+      "db_schema": 5485,
+      "api_schema": 6233,
+      "ui_schema": 3983,
+      "auth_schema": 1764,
+      "workflow_stubs": 0,
+      "validation": 61562,
+      "repair": 9266,
+      "runtime_validation": 2889,
+      "logging": 3046
+    },
+    "estimated_cost_usd": 0.016495,
+    "stage_costs_usd": {
+      "task_extract_intent": 0.00048445,
+      "task_design_architecture": 0.00130252,
+      "task_generate_db_schema": 0.0023022499999999996,
+      "task_generate_api_schema": 0.00407573,
+      "task_generate_ui_schema": 0.00295578,
+      "task_generate_auth_schema": 0,
+      "task_validate_schemas": 0.0060602699999999995,
+      "task_repair_schemas": 0,
+      "task_validate_runtime": 0,
+      "task_log_progress": 0.0015656199999999998
+    },
+    "stage_models_used": {
+      "intent_extraction": "groq/llama-3.3-70b-versatile",
+      "architecture_design": "groq/llama-3.3-70b-versatile",
+      "workflow_stubs": "groq/llama-3.3-70b-versatile",
+      "validation": "groq/llama-3.3-70b-versatile",
+      "repair": "groq/llama-3.3-70b-versatile",
+      "runtime_validation": "groq/llama-3.3-70b-versatile",
+      "logging": "groq/llama-3.3-70b-versatile"
+    },
+    "total_cost_usd": 0.018747,
+    "routing_config": {
+      "stages": {
+        "intent_extraction": {
+          "primary": "groq/llama-3.3-70b-versatile",
+          "fallback": "openrouter/meta-llama/llama-3.3-70b-instruct",
+          "temperature": 0.1
+        },
+        "architecture_design": {
+          "primary": "groq/llama-3.3-70b-versatile",
+          "fallback": "openrouter/meta-llama/llama-3.3-70b-instruct",
+          "temperature": 0.2
+        },
+        "db_schema": {
+          "primary": "groq/llama-3.3-70b-versatile",
+          "fallback": "gemini/gemini-1.5-flash",
+          "temperature": 0.2
+        },
+        "api_schema": {
+          "primary": "groq/llama-3.3-70b-versatile",
+          "fallback": "gemini/gemini-1.5-flash",
+          "temperature": 0.2
+        },
+        "ui_schema": {
+          "primary": "groq/llama-3.3-70b-versatile",
+          "fallback": "openrouter/meta-llama/llama-3.3-70b-instruct",
+          "temperature": 0.2
+        },
+        "auth_schema": {
+          "primary": "groq/llama-3.3-70b-versatile",
+          "fallback": "openrouter/meta-llama/llama-3.3-70b-instruct",
+          "temperature": 0.2
+        },
+        "validation": {
+          "primary": "groq/llama-3.3-70b-versatile",
+          "fallback": "openrouter/meta-llama/llama-3.3-70b-instruct",
+          "temperature": 0.1
+        },
+        "repair": {
+          "primary": "groq/llama-3.3-70b-versatile",
+          "fallback": "gemini/gemini-1.5-flash",
+          "temperature": 0.2
+        },
+        "workflow_stubs": {
+          "primary": "groq/llama-3.3-70b-versatile",
+          "fallback": "openrouter/meta-llama/llama-3.3-70b-instruct",
+          "temperature": 0.2
+        },
+        "runtime_validation": {
+          "primary": "groq/llama-3.3-70b-versatile",
+          "fallback": "openrouter/meta-llama/llama-3.3-70b-instruct",
+          "temperature": 0.1
+        },
+        "logging": {
+          "primary": "groq/llama-3.3-70b-versatile",
+          "fallback": "openrouter/meta-llama/llama-3.3-70b-instruct",
+          "temperature": 0.3
+        }
+      },
+      "providers": [
+        "groq",
+        "gemini",
+        "openrouter"
+      ]
+    }
+  }
+}
