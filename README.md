@@ -11,8 +11,6 @@ pinned: false
 
 ![OneAtlas Preview](./image.png)
 
-> **AI Engineer — 3-Day Trial Task** (June 2026)  
-> *A multi-stage AI compilation pipeline that converts a natural language app description into a structured, validated AppSpec.*
 
 OneAtlas AppSpec Engine is built for reliability. The core challenge of AI-native software generation isn't just calling an LLM—it's ensuring the output is **structured, reliable, and executable**. This engine introduces a multi-stage validation and self-repair pipeline to ensure even messy inputs yield perfect `AppSpec` JSONs.
 
