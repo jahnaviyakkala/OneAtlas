@@ -12,6 +12,14 @@ build/
 .uv/
 report.md
 
+# IDE and Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.vim
+
 # Kiro / AI assistant files — do not commit
 AGENTS.md
 
@@ -48,6 +56,17 @@ run_patch*.py
 *_err.txt
 check*.py
 fix_*.py
+
+# OS files
+.DS_Store
+Thumbs.db
+*.tmp
+
+# Database and cache
+*.db
+*.sqlite3
+.cache/
+.pytest_cache/
 squash_*.py
 cleanup_*.py
 atom*.py
