@@ -16,6 +16,12 @@ OneAtlas AppSpec Engine is built for reliability. The core challenge of AI-nativ
 
 ---
 
+## 🌐 Live Demo
+
+**[Try OneAtlas Now](https://oneatlas-zeta.vercel.app/)** — Experience the AppSpec Engine in action!
+
+---
+
 ## ✨ Features
 
 - **Multi-Stage AI Pipeline**: Distinct phases for Intent, Architecture, Database, APIs, UI, Auth, and Workflows.
