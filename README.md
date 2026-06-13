@@ -136,15 +136,7 @@ The pipeline has been thoroughly evaluated against a suite of complex, ambiguous
 * **Frontend**: React 19, Vite, TailwindCSS
 * **Deployment**: Hugging Face Spaces (Backend Docker) / Vercel (Frontend)
 
----
 
-## 👥 Authors & Contributors
-
-* **Original Creator**: [Lokesh-916](https://github.com/Lokesh-916)
-* **Contributors**: 
-  - [jahnaviyakkala](https://github.com/jahnaviyakkala) - Development & Optimization
-
----
 
 ## 📄 License
 
