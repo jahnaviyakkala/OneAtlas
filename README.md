@@ -72,7 +72,7 @@ flowchart LR
 ### 1. Backend (FastAPI / CrewAI)
 
 ```bash
-git clone (https://github.com/jahnaviyakkala/OneAtlas.git)
+git clone https://github.com/jahnaviyakkala/OneAtlas.git
 cd oneatlas
 uv sync
 cp .env.example .env
