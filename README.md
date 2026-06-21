@@ -73,7 +73,7 @@ flowchart LR
 
 ```bash
 git clone https://github.com/jahnaviyakkala/OneAtlas.git
-cd oneatlas
+cd OneAtlas
 uv sync
 cp .env.example .env
 ```

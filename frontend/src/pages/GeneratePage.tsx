@@ -139,7 +139,15 @@ export default function GeneratePage() {
         `[${new Date().toLocaleTimeString()}] ✔ Modification applied at stage: ${event.applied_at_stage}`,
       ]);
     }
-  }, []);
+  }, [
+    setCurrentStage,
+    setStages,
+    setLogEntries,
+    setHitlEvent,
+    setComplete,
+    setFailed,
+    setModifications,
+  ]);
 
   useSSE({ sessionId, onEvent: handleEvent });
 

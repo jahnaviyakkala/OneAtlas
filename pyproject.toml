@@ -3,7 +3,7 @@ name = "oneatlas-appspec-engine"
 version = "0.1.0"
 description = "OneAtlas AppSpec Engine - natural language to validated AppSpec compiler using crewAI"
 authors = [{ name = "Lokesh" }]
-requires-python = ">=3.10,<3.14"
+requires-python = ">=3.10"
 dependencies = [
     "crewai[google-genai,tools]==1.14.5",
     "litellm>=1.83.7",
@@ -36,3 +36,7 @@ packages = ["src/compiler"]
 
 [tool.crewai]
 type = "crew"
+
+[tool.isort]
+profile = "black"
+

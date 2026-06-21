@@ -21,6 +21,7 @@ logger = logging.getLogger("protoflow.schema_diff")
 
 # ── Input schema ──────────────────────────────────────────────────────────────
 
+
 class SchemaDiffInput(BaseModel):
     """Input for the schema diff tool."""
 
@@ -39,6 +40,7 @@ class SchemaDiffInput(BaseModel):
 
 
 # ── Diff logic ────────────────────────────────────────────────────────────────
+
 
 def _flatten(obj: Any, prefix: str = "") -> dict[str, str]:
     """
@@ -91,12 +93,10 @@ def compute_diff(before_json: str, after_json: str, layer: str) -> dict:
     after_keys = set(after_flat.keys())
 
     added = [
-        {"key": k, "value": after_flat[k]}
-        for k in sorted(after_keys - before_keys)
+        {"key": k, "value": after_flat[k]} for k in sorted(after_keys - before_keys)
     ]
     removed = [
-        {"key": k, "value": before_flat[k]}
-        for k in sorted(before_keys - after_keys)
+        {"key": k, "value": before_flat[k]} for k in sorted(before_keys - after_keys)
     ]
     changed = [
         {"key": k, "before": before_flat[k], "after": after_flat[k]}
@@ -123,6 +123,7 @@ def compute_diff(before_json: str, after_json: str, layer: str) -> dict:
 
 
 # ── CrewAI Tool wrapper ───────────────────────────────────────────────────────
+
 
 class SchemaDiffTool(BaseTool):
     """

@@ -8,9 +8,12 @@ Exposes two functions used in crew.py:
 
 No classes, no plugins, no abstractions beyond what the assignment needs.
 """
+
 from __future__ import annotations
+
 import logging
 import os
+
 import yaml
 
 logger = logging.getLogger("protoflow.routing")
@@ -36,7 +39,9 @@ def _load() -> dict:
             f = tier_cfg.get("fallback", cfg.get("fallback", "?"))
             logger.info("[routing]   %-25s primary=%-45s fallback=%s", stage, p, f)
     except Exception as e:
-        logger.error("[routing] Failed to load routing.yaml: %s — using Groq defaults.", e)
+        logger.error(
+            "[routing] Failed to load routing.yaml: %s — using Groq defaults.", e
+        )
         _config = {}
     return _config
 
@@ -49,29 +54,29 @@ _DEFAULTS = {
 
 # Stage name aliases: map crew.py stage keys -> routing.yaml stage keys
 _STAGE_ALIASES: dict[str, str] = {
-    "intent_extraction":   "intent_extraction",
+    "intent_extraction": "intent_extraction",
     "architecture_design": "architecture_design",
-    "db_schema":           "db_schema",
-    "api_schema":          "api_schema",
-    "ui_schema":           "ui_schema",
-    "auth_schema":         "auth_schema",
-    "validation":          "validation",
-    "repair":              "repair",
-    "workflow_stubs":      "workflow_stubs",
-    "runtime_validation":  "runtime_validation",
-    "logging":             "logging",
+    "db_schema": "db_schema",
+    "api_schema": "api_schema",
+    "ui_schema": "ui_schema",
+    "auth_schema": "auth_schema",
+    "validation": "validation",
+    "repair": "repair",
+    "workflow_stubs": "workflow_stubs",
+    "runtime_validation": "runtime_validation",
+    "logging": "logging",
     # agent method name -> stage key
-    "intent_extractor":    "intent_extraction",
-    "system_architect":    "architecture_design",
-    "db_schema_agent":     "db_schema",
-    "api_schema_agent":    "api_schema",
-    "ui_schema_agent":     "ui_schema",
-    "auth_agent":          "auth_schema",
-    "validator_agent":     "validation",
-    "repair_agent":        "repair",
-    "integration_agent":   "workflow_stubs",
-    "runtime_validator":   "runtime_validation",
-    "progress_logger":     "logging",
+    "intent_extractor": "intent_extraction",
+    "system_architect": "architecture_design",
+    "db_schema_agent": "db_schema",
+    "api_schema_agent": "api_schema",
+    "ui_schema_agent": "ui_schema",
+    "auth_agent": "auth_schema",
+    "validator_agent": "validation",
+    "repair_agent": "repair",
+    "integration_agent": "workflow_stubs",
+    "runtime_validator": "runtime_validation",
+    "progress_logger": "logging",
 }
 
 
@@ -84,16 +89,20 @@ def model_for_stage(stage: str) -> tuple[str, str, float]:
     cfg = _load()
     stage_key = _STAGE_ALIASES.get(stage, stage)
     stage_cfg = cfg.get("stages", {}).get(stage_key, {})
-    
+
     tier_name = stage_cfg.get("tier")
     if tier_name:
         tier_cfg = cfg.get("tiers", {}).get(tier_name, {})
-        primary = tier_cfg.get("primary", stage_cfg.get("primary", _DEFAULTS["primary"]))
-        fallback = tier_cfg.get("fallback", stage_cfg.get("fallback", _DEFAULTS["fallback"]))
+        primary = tier_cfg.get(
+            "primary", stage_cfg.get("primary", _DEFAULTS["primary"])
+        )
+        fallback = tier_cfg.get(
+            "fallback", stage_cfg.get("fallback", _DEFAULTS["fallback"])
+        )
     else:
         primary = stage_cfg.get("primary", _DEFAULTS["primary"])
         fallback = stage_cfg.get("fallback", _DEFAULTS["fallback"])
-        
+
     temp = float(stage_cfg.get("temperature", _DEFAULTS["temperature"]))
     return primary, fallback, temp
 
@@ -117,8 +126,9 @@ def cost_for_tokens(model: str, input_tokens: int, output_tokens: int) -> float:
     rates = cfg.get("cost_table", {}).get(model, {})
     if not rates:
         return 0.0
-    return (input_tokens * rates.get("input", 0.0) +
-            output_tokens * rates.get("output", 0.0))
+    return input_tokens * rates.get("input", 0.0) + output_tokens * rates.get(
+        "output", 0.0
+    )
 
 
 def routing_summary() -> dict:

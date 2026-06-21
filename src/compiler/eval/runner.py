@@ -1,19 +1,20 @@
-import os
+import asyncio
 import json
 import logging
+import os
 import uuid
-import asyncio
-from typing import Dict, List, Any, Optional
-from fastapi import APIRouter, HTTPException, BackgroundTasks
+from typing import Any, Dict, List, Optional
+
+from fastapi import APIRouter, BackgroundTasks, HTTPException
 from fastapi.responses import FileResponse, PlainTextResponse
 from pydantic import BaseModel
 
+from compiler.crew import PipelineSession, run_pipeline
 from compiler.eval.recorder import (
+    EVAL_RESULTS_PATH,
     record_auto_metrics,
     update_human_judgment,
-    EVAL_RESULTS_PATH
 )
-from compiler.crew import PipelineSession, run_pipeline
 
 logger = logging.getLogger("protoflow.eval.runner")
 
@@ -21,7 +22,10 @@ eval_router = APIRouter(prefix="/eval")
 
 # Path to prompts.json
 PROMPTS_PATH = os.path.join(os.path.dirname(__file__), "prompts.json")
-ASSIGNMENT_PROMPTS_PATH = os.path.join(os.path.dirname(__file__), "assignment_prompts.json")
+ASSIGNMENT_PROMPTS_PATH = os.path.join(
+    os.path.dirname(__file__), "assignment_prompts.json"
+)
+
 
 # Request Models
 class RecordJudgmentRequest(BaseModel):
@@ -29,6 +33,7 @@ class RecordJudgmentRequest(BaseModel):
     human_judgment: str  # "pass" | "partial" | "fail"
     human_notes: Optional[str] = ""
     failure_category: Optional[str] = "none"
+
 
 def load_prompts_file() -> List[Dict[str, Any]]:
     if not os.path.exists(PROMPTS_PATH):
@@ -41,6 +46,7 @@ def load_prompts_file() -> List[Dict[str, Any]]:
         logger.error(f"Failed to read prompts.json: {e}")
         return []
 
+
 def load_results_file() -> List[Dict[str, Any]]:
     if not os.path.exists(EVAL_RESULTS_PATH):
         return []
@@ -51,12 +57,9 @@ def load_results_file() -> List[Dict[str, Any]]:
         logger.error(f"Failed to read eval_results.json: {e}")
         return []
 
+
 async def _run_eval_pipeline_safe(
-    session: PipelineSession,
-    prompt_id: int,
-    label: str,
-    category: str,
-    difficulty: str
+    session: PipelineSession, prompt_id: int, label: str, category: str, difficulty: str
 ) -> None:
     """Runs the core pipeline and records auto-metrics on completion or failure."""
     completed = False
@@ -64,13 +67,18 @@ async def _run_eval_pipeline_safe(
         await run_pipeline(session)
         completed = True
     except Exception as exc:
-        logger.error(f"[eval_session:{session.session_id}] Pipeline crashed: {exc}", exc_info=True)
+        logger.error(
+            f"[eval_session:{session.session_id}] Pipeline crashed: {exc}",
+            exc_info=True,
+        )
         try:
-            await session.sse_queue.put({
-                "event": "pipeline_failed",
-                "session_id": session.session_id,
-                "error": str(exc),
-            })
+            await session.sse_queue.put(
+                {
+                    "event": "pipeline_failed",
+                    "session_id": session.session_id,
+                    "error": str(exc),
+                }
+            )
             await session.sse_queue.put(None)  # close stream
         except Exception:
             pass
@@ -83,7 +91,7 @@ async def _run_eval_pipeline_safe(
                 category=category,
                 difficulty=difficulty,
                 session=session,
-                pipeline_completed=completed
+                pipeline_completed=completed,
             )
         except Exception as record_exc:
             logger.error(f"Failed to auto-record eval metrics: {record_exc}")
@@ -110,19 +118,19 @@ async def get_prompts():
     for p in prompts:
         p_id = p["id"]
         latest_res = latest_results.get(p_id)
-        
+
         prompt_entry = dict(p)
         prompt_entry["latest_result"] = latest_res
-        
+
         if latest_res:
             completed_ids.add(p_id)
-            
+
         prompts_with_results.append(prompt_entry)
 
     return {
         "prompts": prompts_with_results,
         "total": len(prompts),
-        "completed": len(completed_ids)
+        "completed": len(completed_ids),
     }
 
 
@@ -138,10 +146,13 @@ async def run_prompt(prompt_id: int):
         raise HTTPException(status_code=404, detail=f"Prompt ID {prompt_id} not found.")
 
     session_id = str(uuid.uuid4())
-    session = PipelineSession(session_id=session_id, prompt=prompt_data["prompt"].strip(), skip_hitl=True)
+    session = PipelineSession(
+        session_id=session_id, prompt=prompt_data["prompt"].strip(), skip_hitl=True
+    )
 
     # Import the main session store locally to avoid circular dependency
-    from compiler.main import _session_store, _session_lock
+    from compiler.main import _session_lock, _session_store
+
     async with _session_lock:
         _session_store[session_id] = session
 
@@ -157,7 +168,7 @@ async def run_prompt(prompt_id: int):
             prompt_id=prompt_id,
             label=prompt_data["label"],
             category=prompt_data["category"],
-            difficulty=prompt_data["difficulty"]
+            difficulty=prompt_data["difficulty"],
         )
     )
 
@@ -173,10 +184,12 @@ async def record_judgment(prompt_id: int, req: RecordJudgmentRequest):
         session_id=req.session_id,
         human_judgment=req.human_judgment,
         human_notes=req.human_notes,
-        failure_category=req.failure_category
+        failure_category=req.failure_category,
     )
     if not success:
-        raise HTTPException(status_code=404, detail=f"Session ID {req.session_id} not found in results.")
+        raise HTTPException(
+            status_code=404, detail=f"Session ID {req.session_id} not found in results."
+        )
     return {"status": "success"}
 
 
@@ -192,30 +205,32 @@ async def get_results():
     passes = 0
     partials = 0
     fails = 0
-    
+
     total_latency = 0
     total_tokens = 0
     total_repair = 0
     hitl_triggers = 0
-    
+
     failure_breakdown = {}
-    
+
     # Category stats dictionary builder helper
     def new_stat_entry():
         return {
-            "total": 0, "pass": 0, "partial": 0, "fail": 0,
-            "total_latency_ms": 0, "total_tokens": 0,
-            "avg_latency_ms": 0.0, "avg_tokens": 0.0
+            "total": 0,
+            "pass": 0,
+            "partial": 0,
+            "fail": 0,
+            "total_latency_ms": 0,
+            "total_tokens": 0,
+            "avg_latency_ms": 0.0,
+            "avg_tokens": 0.0,
         }
 
-    by_category = {
-        "real": new_stat_entry(),
-        "edge": new_stat_entry()
-    }
+    by_category = {"real": new_stat_entry(), "edge": new_stat_entry()}
     by_difficulty = {
         "medium": new_stat_entry(),
         "hard": new_stat_entry(),
-        "adversarial": new_stat_entry()
+        "adversarial": new_stat_entry(),
     }
 
     for res in results:
@@ -262,7 +277,7 @@ async def get_results():
     pass_rate = (passes / total_run) if total_run > 0 else 0.0
     partial_rate = (partials / total_run) if total_run > 0 else 0.0
     fail_rate = (fails / total_run) if total_run > 0 else 0.0
-    
+
     avg_latency = (total_latency / total_run) if total_run > 0 else 0.0
     avg_tokens = (total_tokens / total_run) if total_run > 0 else 0.0
     avg_repair = (total_repair / total_run) if total_run > 0 else 0.0
@@ -292,8 +307,8 @@ async def get_results():
             "hitl_trigger_rate": hitl_rate,
             "failure_breakdown": failure_breakdown,
             "by_category": by_category,
-            "by_difficulty": by_difficulty
-        }
+            "by_difficulty": by_difficulty,
+        },
     }
 
 
@@ -303,11 +318,13 @@ async def export_results():
     Returns eval_results.json as a downloadable file response.
     """
     if not os.path.exists(EVAL_RESULTS_PATH):
-        raise HTTPException(status_code=404, detail="No evaluation results found to export.")
+        raise HTTPException(
+            status_code=404, detail="No evaluation results found to export."
+        )
     return FileResponse(
         path=EVAL_RESULTS_PATH,
         media_type="application/json",
-        filename="eval_results.json"
+        filename="eval_results.json",
     )
 
 
@@ -319,14 +336,18 @@ async def get_assignment_prompts():
     Run via POST /eval/run/{id} where id is 1-12.
     """
     if not os.path.exists(ASSIGNMENT_PROMPTS_PATH):
-        raise HTTPException(status_code=404, detail="assignment_prompts.json not found.")
+        raise HTTPException(
+            status_code=404, detail="assignment_prompts.json not found."
+        )
     try:
         with open(ASSIGNMENT_PROMPTS_PATH, "r", encoding="utf-8") as f:
             prompts = json.load(f)
         return {
             "prompts": prompts,
             "total": len(prompts),
-            "note": "These are the 12 required prompts from the OneAtlas trial task specification."
+            "note": "These are the 12 required prompts from the OneAtlas trial task specification.",
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to load assignment prompts: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to load assignment prompts: {e}"
+        )

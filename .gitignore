@@ -45,7 +45,7 @@ frontend/dist/
 *.pdf
 
 # Root-level test scripts (one-off, not part of test suite)
-test_*.py
+/test_*.py
 # Temp build/test scripts
 *.cmd
 patch_*.py

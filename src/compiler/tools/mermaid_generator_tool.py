@@ -26,6 +26,7 @@ logger = logging.getLogger("protoflow.mermaid")
 
 # ── Input schema ──────────────────────────────────────────────────────────────
 
+
 class MermaidInput(BaseModel):
     """Input for the Mermaid generator tool."""
 
@@ -41,6 +42,7 @@ class MermaidInput(BaseModel):
 
 # ── Pipeline flow diagram ─────────────────────────────────────────────────────
 
+
 def generate_pipeline_flow(data: dict) -> str:
     """
     Generate a Mermaid flowchart showing pipeline stages.
@@ -52,18 +54,51 @@ def generate_pipeline_flow(data: dict) -> str:
     """
     logger.debug("[mermaid] Generating pipeline_flow diagram.")
 
-    stages = data.get("stages", [
-        {"name": "Intent Extraction", "status": "complete", "hitl": True, "repair": False},
-        {"name": "Architecture Design", "status": "complete", "hitl": False, "repair": False},
-        {"name": "DB Schema", "status": "complete", "hitl": False, "repair": False},
-        {"name": "API Schema", "status": "complete", "hitl": False, "repair": False},
-        {"name": "UI Schema", "status": "complete", "hitl": False, "repair": False},
-        {"name": "Auth Schema", "status": "complete", "hitl": False, "repair": False},
-        {"name": "Validation", "status": "complete", "hitl": False, "repair": False},
-        {"name": "Repair", "status": "complete", "hitl": False, "repair": True},
-        {"name": "Runtime Validation", "status": "complete", "hitl": False, "repair": False},
-        {"name": "Logging", "status": "complete", "hitl": False, "repair": False},
-    ])
+    stages = data.get(
+        "stages",
+        [
+            {
+                "name": "Intent Extraction",
+                "status": "complete",
+                "hitl": True,
+                "repair": False,
+            },
+            {
+                "name": "Architecture Design",
+                "status": "complete",
+                "hitl": False,
+                "repair": False,
+            },
+            {"name": "DB Schema", "status": "complete", "hitl": False, "repair": False},
+            {
+                "name": "API Schema",
+                "status": "complete",
+                "hitl": False,
+                "repair": False,
+            },
+            {"name": "UI Schema", "status": "complete", "hitl": False, "repair": False},
+            {
+                "name": "Auth Schema",
+                "status": "complete",
+                "hitl": False,
+                "repair": False,
+            },
+            {
+                "name": "Validation",
+                "status": "complete",
+                "hitl": False,
+                "repair": False,
+            },
+            {"name": "Repair", "status": "complete", "hitl": False, "repair": True},
+            {
+                "name": "Runtime Validation",
+                "status": "complete",
+                "hitl": False,
+                "repair": False,
+            },
+            {"name": "Logging", "status": "complete", "hitl": False, "repair": False},
+        ],
+    )
 
     lines = ["flowchart TD"]
     lines.append("    START([User Prompt]) --> S0")
@@ -112,6 +147,7 @@ def generate_pipeline_flow(data: dict) -> str:
 
 # ── ER diagram ────────────────────────────────────────────────────────────────
 
+
 def generate_er_diagram(data: dict) -> str:
     """
     Generate a Mermaid erDiagram from DBSchema data.
@@ -123,7 +159,9 @@ def generate_er_diagram(data: dict) -> str:
 
     tables = data.get("tables", [])
     if not tables:
-        logger.warning("[mermaid] No tables provided for ER diagram — returning placeholder.")
+        logger.warning(
+            "[mermaid] No tables provided for ER diagram — returning placeholder."
+        )
         return "erDiagram\n    PLACEHOLDER {\n        string id PK\n    }"
 
     lines = ["erDiagram"]
@@ -163,6 +201,7 @@ def generate_er_diagram(data: dict) -> str:
 
 # ── API sequence diagram ──────────────────────────────────────────────────────
 
+
 def generate_api_sequence(data: dict) -> str:
     """
     Generate a Mermaid sequenceDiagram for the primary entity CRUD flow.
@@ -179,8 +218,7 @@ def generate_api_sequence(data: dict) -> str:
     # Filter to CRUD endpoints for the primary entity
     entity_lower = entity.lower()
     crud_endpoints = [
-        ep for ep in endpoints
-        if entity_lower in ep.get("path", "").lower()
+        ep for ep in endpoints if entity_lower in ep.get("path", "").lower()
     ]
 
     if not crud_endpoints:
@@ -188,11 +226,31 @@ def generate_api_sequence(data: dict) -> str:
             "[mermaid] No endpoints found for entity '%s' — using generic CRUD.", entity
         )
         crud_endpoints = [
-            {"method": "POST", "path": f"/api/{entity_lower}s", "description": f"Create {entity}"},
-            {"method": "GET", "path": f"/api/{entity_lower}s", "description": f"List {entity}s"},
-            {"method": "GET", "path": f"/api/{entity_lower}s/{{id}}", "description": f"Get {entity}"},
-            {"method": "PUT", "path": f"/api/{entity_lower}s/{{id}}", "description": f"Update {entity}"},
-            {"method": "DELETE", "path": f"/api/{entity_lower}s/{{id}}", "description": f"Delete {entity}"},
+            {
+                "method": "POST",
+                "path": f"/api/{entity_lower}s",
+                "description": f"Create {entity}",
+            },
+            {
+                "method": "GET",
+                "path": f"/api/{entity_lower}s",
+                "description": f"List {entity}s",
+            },
+            {
+                "method": "GET",
+                "path": f"/api/{entity_lower}s/{{id}}",
+                "description": f"Get {entity}",
+            },
+            {
+                "method": "PUT",
+                "path": f"/api/{entity_lower}s/{{id}}",
+                "description": f"Update {entity}",
+            },
+            {
+                "method": "DELETE",
+                "path": f"/api/{entity_lower}s/{{id}}",
+                "description": f"Delete {entity}",
+            },
         ]
 
     lines = [
@@ -230,26 +288,35 @@ def generate_api_sequence(data: dict) -> str:
 
 # ── Validation ────────────────────────────────────────────────────────────────
 
+
 def validate_mermaid(diagram: str) -> bool:
     """
     Basic syntactic validation — checks that the diagram starts with a
     known Mermaid diagram type keyword.
     """
     known_types = (
-        "flowchart", "graph", "sequenceDiagram", "erDiagram",
-        "classDiagram", "stateDiagram", "gantt", "pie",
+        "flowchart",
+        "graph",
+        "sequenceDiagram",
+        "erDiagram",
+        "classDiagram",
+        "stateDiagram",
+        "gantt",
+        "pie",
     )
     stripped = diagram.strip()
     is_valid = any(stripped.startswith(t) for t in known_types)
     if not is_valid:
         logger.warning(
             "[mermaid] Diagram does not start with a known Mermaid type. "
-            "First 80 chars: %s", stripped[:80]
+            "First 80 chars: %s",
+            stripped[:80],
         )
     return is_valid
 
 
 # ── CrewAI Tool wrapper ───────────────────────────────────────────────────────
+
 
 class MermaidGeneratorTool(BaseTool):
     """
@@ -277,8 +344,9 @@ class MermaidGeneratorTool(BaseTool):
         generator = generators.get(diagram_type)
         if not generator:
             logger.error(
-                "[MermaidGeneratorTool] Unknown diagram_type '%s'. "
-                "Valid types: %s", diagram_type, list(generators.keys())
+                "[MermaidGeneratorTool] Unknown diagram_type '%s'. " "Valid types: %s",
+                diagram_type,
+                list(generators.keys()),
             )
             return f"# Error: unknown diagram_type '{diagram_type}'"
 

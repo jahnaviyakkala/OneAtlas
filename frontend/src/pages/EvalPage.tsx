@@ -266,7 +266,7 @@ export default function EvalPage() {
       tokens: r.total_tokens,
       cost: +(r.total_cost_usd * 1000).toFixed(2),
     })),
-  []);
+  [completed]);
 
   const stageAvgData = useMemo(() => {
     const stages = ["intent_extraction", "architecture_design", "db_schema", "api_schema", "ui_schema", "auth_schema", "workflow_stubs", "validation", "repair", "runtime_validation", "logging"];
@@ -274,13 +274,13 @@ export default function EvalPage() {
       const vals = completed.map(r => r.stage_latencies[s] || 0).filter(v => v > 0);
       return { stage: s.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase()).slice(0, 12), avg: vals.length ? +(vals.reduce((a, b) => a + b, 0) / vals.length / 1000).toFixed(1) : 0, fullName: s };
     });
-  }, []);
+  }, [completed]);
 
   const validationLayerData = useMemo(() => {
     const counts: Record<string, number> = {};
     completed.forEach(r => r.validation_errors.forEach(e => { counts[e.layer] = (counts[e.layer] || 0) + 1; }));
     return Object.entries(counts).map(([name, value]) => ({ name, value }));
-  }, []);
+  }, [completed]);
 
   const radarData = useMemo(() => {
     const metrics = [
@@ -292,13 +292,13 @@ export default function EvalPage() {
       { metric: "Speed (inv)", value: Math.max(0, 100 - (avgLatency / 15000)) },
     ];
     return metrics;
-  }, []);
+  }, [completed, passRate, successCount, avgLatency]);
 
   const categoryData = useMemo(() => [
     { name: "Standard", value: completed.filter(r => r.category === "standard").length, fill: SAGE },
     { name: "Edge Case", value: completed.filter(r => r.category === "edge_case").length, fill: ACCENT3 },
     { name: "Pending", value: PENDING_PROMPTS.length, fill: MUTED },
-  ], []);
+  ], [completed]);
 
   const tooltipStyle = { contentStyle: { background: BG_CARD, border: `1px solid ${BORDER}`, borderRadius: 8, fontSize: 12, color: TEXT }, itemStyle: { color: TEXT_DIM } };
 
@@ -396,7 +396,7 @@ export default function EvalPage() {
                 <h3 className="text-xs font-mono uppercase tracking-wider mb-4" style={{ color: TEXT_DIMMER }}>Prompt Categories</h3>
                 <ResponsiveContainer width="100%" height={220}>
                   <PieChart>
-                    <Pie data={categoryData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={3} dataKey="value" label={({ name, value }: any) => `${name} (${value})`} labelLine={{ stroke: TEXT_DIMMER }}>
+                    <Pie data={categoryData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={3} dataKey="value" label={({ name, value }: { name: string; value: number }) => `${name} (${value})`} labelLine={{ stroke: TEXT_DIMMER }}>
                       {categoryData.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
                     </Pie>
                     <Legend iconType="circle" wrapperStyle={{ fontSize: 11, color: TEXT_DIM }} />

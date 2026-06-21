@@ -26,6 +26,7 @@ logger = logging.getLogger("protoflow.json_repair")
 
 # ── Input schema ──────────────────────────────────────────────────────────────
 
+
 class JSONRepairInput(BaseModel):
     """Input for the JSON repair tool."""
 
@@ -76,7 +77,9 @@ def extract_json(raw_text: str) -> Any:
     4. Fall back to json_repair library.
     5. Raise ValueError if all attempts fail.
     """
-    logger.debug("[json_repair] Starting extraction. Input length: %d chars.", len(raw_text))
+    logger.debug(
+        "[json_repair] Starting extraction. Input length: %d chars.", len(raw_text)
+    )
 
     # Step 1 — strip fences
     stripped = _strip_fences(raw_text)
@@ -118,12 +121,12 @@ def extract_json(raw_text: str) -> Any:
         "[json_repair] All extraction attempts failed. Raw preview: %s", preview
     )
     raise ValueError(
-        f"Could not extract valid JSON from LLM output. "
-        f"Preview: {preview!r}"
+        f"Could not extract valid JSON from LLM output. " f"Preview: {preview!r}"
     )
 
 
 # ── CrewAI Tool wrapper ───────────────────────────────────────────────────────
+
 
 class JSONRepairTool(BaseTool):
     """

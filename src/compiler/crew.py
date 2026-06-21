@@ -26,47 +26,50 @@ import re
 import time
 from typing import TYPE_CHECKING, Any, Callable, Coroutine, Optional
 
-import yaml as _yaml
 import litellm
+import yaml as _yaml
 
 # Monkey-patch litellm to strip `cache_breakpoint` from messages.
 # CrewAI 1.14+ injects this for Anthropic, but Groq strictly rejects it with a 400 Bad Request.
 original_completion = litellm.completion
+
+
 def patched_completion(*args, **kwargs):
     if "messages" in kwargs:
         for msg in kwargs["messages"]:
             if "cache_breakpoint" in msg:
                 del msg["cache_breakpoint"]
     return original_completion(*args, **kwargs)
+
+
 litellm.completion = patched_completion
 
+import asyncio
 import re
 import traceback
-import asyncio
+
 from dotenv import load_dotenv
 
 # Load environment variables before parsing keys
 load_dotenv()
 
 # crewai imports
-from crewai import Agent, Crew, Process, Task, LLM
-from crewai.project import CrewBase, agent, crew, task
+from crewai import LLM, Agent, Crew, Process, Task
 from crewai.agents.agent_builder.base_agent import BaseAgent
+from crewai.project import CrewBase, agent, crew, task
+
 from compiler.tools.json_repair_tool import extract_json
-from compiler.tools.routing import model_for_stage, cost_for_tokens, routing_summary
+from compiler.tools.routing import cost_for_tokens, model_for_stage, routing_summary
 
 if TYPE_CHECKING:
-    from compiler.schemas.contracts import (
-        ValidationReport,
-        RepairReport,
-        FinalOutput,
-    )
+    from compiler.schemas.contracts import FinalOutput, RepairReport, ValidationReport
 
 logger = logging.getLogger("protoflow.crew")
 
 SSEEmitter = Callable[[str, str, dict], Coroutine[Any, Any, None]]
 
 MAX_REPAIR_LOOPS = int(os.getenv("MAX_REPAIR_LOOPS", "3"))
+
 
 def _llm_for_agent(agent_name: str) -> "LLM":
     """
@@ -78,7 +81,10 @@ def _llm_for_agent(agent_name: str) -> "LLM":
     logger.debug("[routing] Agent %s -> model=%s temp=%s", agent_name, primary, temp)
     return LLM(model=primary, temperature=temp)
 
-def _classify_repair_strategy(errors: list, validation_report: dict, attempt: int) -> str:
+
+def _classify_repair_strategy(
+    errors: list, validation_report: dict, attempt: int
+) -> str:
     """
     Deterministic repair strategy classifier.
     Returns one of: STRUCTURAL, FIELD, CONSISTENCY, ESCALATED.
@@ -95,33 +101,54 @@ def _classify_repair_strategy(errors: list, validation_report: dict, attempt: in
 
     # Combine all error descriptions into one lowercase string for pattern matching
     all_errors = " ".join(
-        e.get("description", str(e)) if isinstance(e, dict) else str(e)
-        for e in errors
+        e.get("description", str(e)) if isinstance(e, dict) else str(e) for e in errors
     ).lower()
 
     # Also check if the report itself indicates a parse failure (empty report)
     is_empty_report = not validation_report or (
-        not validation_report.get("errors") and
-        not validation_report.get("warnings") and
-        not validation_report.get("validated_at")
+        not validation_report.get("errors")
+        and not validation_report.get("warnings")
+        and not validation_report.get("validated_at")
     )
 
     # STRUCTURAL: JSON/parse/format failures
     structural_keywords = [
-        "json", "parse", "malformed", "truncated", "invalid json",
-        "could not extract", "empty", "syntax error", "decode error",
-        "format", "missing json", "not valid"
+        "json",
+        "parse",
+        "malformed",
+        "truncated",
+        "invalid json",
+        "could not extract",
+        "empty",
+        "syntax error",
+        "decode error",
+        "format",
+        "missing json",
+        "not valid",
     ]
     if is_empty_report or any(kw in all_errors for kw in structural_keywords):
         return "STRUCTURAL"
 
     # CONSISTENCY: cross-layer reference mismatches
     consistency_keywords = [
-        "not found in", "references", "does not exist", "missing entity",
-        "missing table", "endpoint references", "page references",
-        "role not defined", "undefined role", "foreign key", "cross-layer",
-        "mismatch", "no corresponding", "no matching", "orphan",
-        "inconsistent", "referenced", "not in schema"
+        "not found in",
+        "references",
+        "does not exist",
+        "missing entity",
+        "missing table",
+        "endpoint references",
+        "page references",
+        "role not defined",
+        "undefined role",
+        "foreign key",
+        "cross-layer",
+        "mismatch",
+        "no corresponding",
+        "no matching",
+        "orphan",
+        "inconsistent",
+        "referenced",
+        "not in schema",
     ]
     if any(kw in all_errors for kw in consistency_keywords):
         return "CONSISTENCY"
@@ -130,31 +157,35 @@ def _classify_repair_strategy(errors: list, validation_report: dict, attempt: in
     return "FIELD"
 
 
-
-
 HITL_TIMEOUT_SECONDS = int(os.getenv("HITL_TIMEOUT_SECONDS", "300"))
 
 import random
 import threading
+
 _key_lock = threading.Lock()
 _global_groq_idx = 0
 _global_gemini_idx = 0
 
+
 def get_next_groq_key() -> str:
     global _global_groq_idx
-    if not GROQ_KEYS: return ""
+    if not GROQ_KEYS:
+        return ""
     with _key_lock:
         key = GROQ_KEYS[_global_groq_idx % len(GROQ_KEYS)]
         _global_groq_idx += 1
         return key
 
+
 def get_next_gemini_key() -> str:
     global _global_gemini_idx
-    if not GEMINI_KEYS: return ""
+    if not GEMINI_KEYS:
+        return ""
     with _key_lock:
         key = GEMINI_KEYS[_global_gemini_idx % len(GEMINI_KEYS)]
         _global_gemini_idx += 1
         return key
+
 
 # Load all available Groq API keys from env
 GROQ_KEYS = []
@@ -187,17 +218,26 @@ def _compact(data: Optional[dict]) -> str:
     """
     if not data:
         return "{}"
-    _VERBOSE = frozenset({
-        "description", "backstory", "default_value",
-        "error_responses", "navigation_links", "props", "validation",
-    })
+    _VERBOSE = frozenset(
+        {
+            "description",
+            "backstory",
+            "default_value",
+            "error_responses",
+            "navigation_links",
+            "props",
+            "validation",
+        }
+    )
+
     def _rec(obj: Any) -> Any:
         if isinstance(obj, dict):
             return {k: _rec(v) for k, v in obj.items() if k not in _VERBOSE}
         if isinstance(obj, list):
             return [_rec(i) for i in obj]
         return obj
-    return json.dumps(_rec(data), separators=(',', ':'))
+
+    return json.dumps(_rec(data), separators=(",", ":"))
 
 
 def _outline(data: Optional[dict]) -> str:
@@ -208,6 +248,7 @@ def _outline(data: Optional[dict]) -> str:
     """
     if not data:
         return "{}"
+
     # Top-level keys to keep per schema type, with how many items to show
     def _summarise(obj: Any, depth: int = 0) -> Any:
         if depth >= 5:
@@ -218,22 +259,46 @@ def _outline(data: Optional[dict]) -> str:
                 return f"{{{len(obj)} keys}}"
             return obj
         if isinstance(obj, dict):
-            KEEP = frozenset({
-                "name", "table", "path", "method", "type", "role",
-                "role_required", "auth_required", "required_role",
-                "tables", "endpoints", "pages", "roles",
-                "permissions_matrix", "auth_strategy", "entities",
-                "relations", "primary_key", "nullable", "data_type",
-                "references_table", "from_entity", "to_entity",
-                "submit_endpoint", "api_endpoint", "cardinality",
-                "is_valid", "errors", "warnings", "conflicts",
-            })
+            KEEP = frozenset(
+                {
+                    "name",
+                    "table",
+                    "path",
+                    "method",
+                    "type",
+                    "role",
+                    "role_required",
+                    "auth_required",
+                    "required_role",
+                    "tables",
+                    "endpoints",
+                    "pages",
+                    "roles",
+                    "permissions_matrix",
+                    "auth_strategy",
+                    "entities",
+                    "relations",
+                    "primary_key",
+                    "nullable",
+                    "data_type",
+                    "references_table",
+                    "from_entity",
+                    "to_entity",
+                    "submit_endpoint",
+                    "api_endpoint",
+                    "cardinality",
+                    "is_valid",
+                    "errors",
+                    "warnings",
+                    "conflicts",
+                }
+            )
             return {k: _summarise(v, depth + 1) for k, v in obj.items() if k in KEEP}
         if isinstance(obj, list):
             return [_summarise(i, depth + 1) for i in obj]
         return obj
-    return json.dumps(_summarise(data), separators=(',', ':'))
 
+    return json.dumps(_summarise(data), separators=(",", ":"))
 
 
 # ── CrewBase class ────────────────────────────────────────────────────────────
@@ -258,7 +323,8 @@ def _sanitize_mermaid(source: str, diagram_hint: str = "") -> str:
 
     # Fix 1: -->|label|>  →  -->|label|
     import re
-    src = re.sub(r'(\|[^|]*\|)>', r'\1', src)
+
+    src = re.sub(r"(\|[^|]*\|)>", r"\1", src)
 
     # Fix 2: strip 'style ...' lines for diagram types that don't support it
     needs_strip = False
@@ -272,7 +338,9 @@ def _sanitize_mermaid(source: str, diagram_hint: str = "") -> str:
         cleaned = []
         for line in src.split("\n"):
             stripped = line.strip()
-            if stripped.startswith("style ") and ("fill:" in stripped or "stroke:" in stripped):
+            if stripped.startswith("style ") and (
+                "fill:" in stripped or "stroke:" in stripped
+            ):
                 continue  # drop invalid style line
             cleaned.append(line)
         src = "\n".join(cleaned)
@@ -396,7 +464,6 @@ class ProtoFlowCrew:
             cache=False,
         )
 
-
     @agent
     def integration_agent(self) -> Agent:
         logger.debug("[crew] Building integration_agent agent.")
@@ -508,6 +575,7 @@ class ProtoFlowCrew:
 
 # ── Session state ─────────────────────────────────────────────────────────────
 
+
 class PipelineSession:
     """
     Holds all mutable state for one pipeline run.
@@ -527,8 +595,8 @@ class PipelineSession:
         self.hitl_chosen_option: Optional[str] = None
 
         # Midway modification support
-        self.pending_modification: Optional[str] = None   # set by POST /modify
-        self.modification_history: list[dict] = []        # record of all modifications
+        self.pending_modification: Optional[str] = None  # set by POST /modify
+        self.modification_history: list[dict] = []  # record of all modifications
 
         # Accumulated outputs
         self.intent: Optional[dict] = None
@@ -543,9 +611,9 @@ class PipelineSession:
         self.workflow_stubs: list = []
         self.integration_hooks: list = []
         self.app_spec: Optional[dict] = None
-        self.stage_models: dict[str, str] = {}   # stage -> model actually used
+        self.stage_models: dict[str, str] = {}  # stage -> model actually used
         self.stage_costs: dict[str, float] = {}  # stage -> estimated USD cost
-        self.repair_log: list = []               # Feature F: per-attempt repair log
+        self.repair_log: list = []  # Feature F: per-attempt repair log
         self.log_output: Optional[dict] = None
 
         # Metrics
@@ -565,11 +633,15 @@ class PipelineSession:
     def elapsed_ms(self) -> int:
         return int((time.monotonic() - self.started_at) * 1000)
 
-    def resume_hitl(self, answers: list[str], chosen_option: Optional[str] = None) -> None:
+    def resume_hitl(
+        self, answers: list[str], chosen_option: Optional[str] = None
+    ) -> None:
         """Called by POST /clarify to unblock the pipeline."""
         logger.info(
             "[session:%s] HITL resumed. answers=%s chosen=%s",
-            self.session_id, answers, chosen_option,
+            self.session_id,
+            answers,
+            chosen_option,
         )
         self.hitl_answers = answers
         self.hitl_chosen_option = chosen_option
@@ -580,12 +652,14 @@ class PipelineSession:
         """Called by POST /modify to enqueue a midway prompt modification."""
         logger.info(
             "[session:%s] Modification queued: %r",
-            self.session_id, modification[:100],
+            self.session_id,
+            modification[:100],
         )
         self.pending_modification = modification
 
 
 # ── Async pipeline runner ─────────────────────────────────────────────────────
+
 
 async def _emit(session: PipelineSession, event_type: str, payload: dict) -> None:
     """
@@ -597,7 +671,9 @@ async def _emit(session: PipelineSession, event_type: str, payload: dict) -> Non
     await session.sse_queue.put(event)
     logger.debug(
         "[session:%s] SSE emitted. event=%s keys=%s",
-        session.session_id, event_type, list(payload.keys()),
+        session.session_id,
+        event_type,
+        list(payload.keys()),
     )
 
 
@@ -613,41 +689,52 @@ async def _wait_for_hitl(
     Emit a hitl_required event, then block until POST /clarify sets the event.
     Returns the answers list.
     """
-    if getattr(session, 'skip_hitl', False):
+    if getattr(session, "skip_hitl", False):
         logger.info("[session:%s] HITL skipped (eval mode).", session.session_id)
         return []
 
     logger.info(
         "[session:%s] HITL required. stage=%s reason=%s questions=%s",
-        session.session_id, stage, trigger_reason, questions,
+        session.session_id,
+        stage,
+        trigger_reason,
+        questions,
     )
     session.hitl_event.clear()
     session.hitl_answers = []
 
-    await _emit(session, "hitl_required", {
-        "stage": stage,
-        "trigger_reason": trigger_reason,
-        "questions": questions,
-        "options": options,
-        "timeout_seconds": timeout_seconds,
-    })
+    await _emit(
+        session,
+        "hitl_required",
+        {
+            "stage": stage,
+            "trigger_reason": trigger_reason,
+            "questions": questions,
+            "options": options,
+            "timeout_seconds": timeout_seconds,
+        },
+    )
 
     try:
         await asyncio.wait_for(session.hitl_event.wait(), timeout=timeout_seconds)
         logger.info(
             "[session:%s] HITL answered. answers=%s",
-            session.session_id, session.hitl_answers,
+            session.session_id,
+            session.hitl_answers,
         )
     except asyncio.TimeoutError:
         logger.warning(
             "[session:%s] HITL timed out after %ds. Proceeding with empty answers.",
-            session.session_id, timeout_seconds,
+            session.session_id,
+            timeout_seconds,
         )
 
     return session.hitl_answers
 
 
-async def _apply_pending_modification(session: PipelineSession, current_stage: str) -> bool:
+async def _apply_pending_modification(
+    session: PipelineSession, current_stage: str
+) -> bool:
     """
     Check for a pending midway modification. If found, apply it to session.prompt
     and emit modification_applied SSE event. Returns True if a modification was applied.
@@ -673,14 +760,20 @@ async def _apply_pending_modification(session: PipelineSession, current_stage: s
 
     logger.info(
         "[session:%s] Modification applied at stage=%s: %r",
-        session.session_id, current_stage, mod[:100],
+        session.session_id,
+        current_stage,
+        mod[:100],
     )
 
-    await _emit(session, "modification_applied", {
-        "modification": mod,
-        "applied_at_stage": current_stage,
-        "new_prompt": new_prompt,
-    })
+    await _emit(
+        session,
+        "modification_applied",
+        {
+            "modification": mod,
+            "applied_at_stage": current_stage,
+            "new_prompt": new_prompt,
+        },
+    )
     return True
 
 
@@ -697,28 +790,47 @@ async def _run_stage(
     """
     logger.info("[session:%s] Stage START: %s", session.session_id, stage_name)
     model = model_for_stage(stage_name)[0]
-    if getattr(session, 'tpm_limit_hit', False):
-        logger.warning("[session:%s] Skipping stage %s due to prior TPM limit hit.", session.session_id, stage_name)
-        await _emit(session, "stage_update", {
-            "stage": stage_name, "status": "failed", "model": model, "latency_ms": 0,
-            "output_summary": "Bypassed due to Groq TPM limits."
-        })
+    if getattr(session, "tpm_limit_hit", False):
+        logger.warning(
+            "[session:%s] Skipping stage %s due to prior TPM limit hit.",
+            session.session_id,
+            stage_name,
+        )
+        await _emit(
+            session,
+            "stage_update",
+            {
+                "stage": stage_name,
+                "status": "failed",
+                "model": model,
+                "latency_ms": 0,
+                "output_summary": "Bypassed due to Groq TPM limits.",
+            },
+        )
         return {}
     t0 = time.monotonic()
 
-    await _emit(session, "stage_update", {
-        "stage": stage_name,
-        "status": "running",
-        "model": model,
-        "latency_ms": 0,
-        "output_summary": "",
-    })
+    await _emit(
+        session,
+        "stage_update",
+        {
+            "stage": stage_name,
+            "status": "running",
+            "model": model,
+            "latency_ms": 0,
+            "output_summary": "",
+        },
+    )
     # Also emit stage_start as a distinct event type (assignment requirement)
-    await _emit(session, "stage_start", {
-        "stage": stage_name,
-        "model": model,
-        "timestamp": int(time.monotonic() * 1000),
-    })
+    await _emit(
+        session,
+        "stage_start",
+        {
+            "stage": stage_name,
+            "model": model,
+            "timestamp": int(time.monotonic() * 1000),
+        },
+    )
 
     try:
         result = await coro
@@ -736,23 +848,33 @@ async def _run_stage(
             except Exception:
                 summary = str(result)[:120]
 
-        await _emit(session, "stage_update", {
-            "stage": stage_name,
-            "status": "complete",
-            "model": model,
-            "latency_ms": latency_ms,
-            "output_summary": summary,
-        })
+        await _emit(
+            session,
+            "stage_update",
+            {
+                "stage": stage_name,
+                "status": "complete",
+                "model": model,
+                "latency_ms": latency_ms,
+                "output_summary": summary,
+            },
+        )
         # Also emit stage_complete as distinct event type
-        await _emit(session, "stage_complete", {
-            "stage": stage_name,
-            "latency_ms": latency_ms,
-            "model": model,
-        })
+        await _emit(
+            session,
+            "stage_complete",
+            {
+                "stage": stage_name,
+                "latency_ms": latency_ms,
+                "model": model,
+            },
+        )
 
         logger.info(
             "[session:%s] Stage DONE: %s latency=%dms",
-            session.session_id, stage_name, latency_ms,
+            session.session_id,
+            stage_name,
+            latency_ms,
         )
         return result
 
@@ -767,25 +889,40 @@ async def _run_stage(
             # so the pipeline continues to completion with whatever it can produce.
             logger.error(
                 "[session:%s] Request size limit hit in stage %s — stage skipped, pipeline continues.",
-                session.session_id, stage_name,
+                session.session_id,
+                stage_name,
             )
-            await _emit(session, "stage_update", {
-                "stage": stage_name, "status": "failed", "model": model,
-                "latency_ms": latency_ms,
-                "output_summary": f"Skipped (request too large for model). {exc}"
-            })
+            await _emit(
+                session,
+                "stage_update",
+                {
+                    "stage": stage_name,
+                    "status": "failed",
+                    "model": model,
+                    "latency_ms": latency_ms,
+                    "output_summary": f"Skipped (request too large for model). {exc}",
+                },
+            )
             return {}
         logger.error(
             "[session:%s] Stage FAILED: %s error=%s latency=%dms",
-            session.session_id, stage_name, exc, latency_ms, exc_info=True,
+            session.session_id,
+            stage_name,
+            exc,
+            latency_ms,
+            exc_info=True,
         )
-        await _emit(session, "stage_update", {
-            "stage": stage_name,
-            "status": "failed",
-            "model": model,
-            "latency_ms": latency_ms,
-            "output_summary": f"ERROR: {exc}",
-        })
+        await _emit(
+            session,
+            "stage_update",
+            {
+                "stage": stage_name,
+                "status": "failed",
+                "model": model,
+                "latency_ms": latency_ms,
+                "output_summary": f"ERROR: {exc}",
+            },
+        )
         raise
 
 
@@ -805,7 +942,8 @@ async def run_pipeline(session: PipelineSession) -> None:
     """
     logger.info(
         "[session:%s] Pipeline START. prompt=%r",
-        session.session_id, session.prompt[:80],
+        session.session_id,
+        session.prompt[:80],
     )
 
     crew_instance = ProtoFlowCrew()
@@ -825,7 +963,9 @@ async def run_pipeline(session: PipelineSession) -> None:
         """
         logger.debug(
             "[session:%s] _kickoff_task: %s inputs_keys=%s",
-            session.session_id, task_name, list(inputs.keys()),
+            session.session_id,
+            task_name,
+            list(inputs.keys()),
         )
 
         # Get agent name string from raw YAML dict
@@ -833,57 +973,74 @@ async def run_pipeline(session: PipelineSession) -> None:
         agent_name: str = raw_task_def.get("agent", "")
         logger.debug(
             "[session:%s] _kickoff_task: task=%s agent_name=%r",
-            session.session_id, task_name, agent_name,
+            session.session_id,
+            task_name,
+            agent_name,
         )
 
         # Run in a thread pool to avoid blocking the event loop
         loop = asyncio.get_running_loop()
-        
+
         # Instantiate agent via the @agent method on the crew class ONCE
         agent = None
         if agent_name and isinstance(agent_name, str):
             agent_creator = getattr(crew_instance, agent_name, None)
             if callable(agent_creator):
                 agent = agent_creator()
-                
+
                 # --- Dynamic Load Balancing & Repair Routing ---
-                is_repair = (task_name == "task_repair_schemas")
+                is_repair = task_name == "task_repair_schemas"
                 target_model = None
                 target_api_key = None
-                
-                if is_repair and getattr(session, 'validation_report', None):
+
+                if is_repair and getattr(session, "validation_report", None):
                     # Find which schema produced the failure
                     report = session.validation_report
                     worst_schema = None
                     max_errs = -1
-                    for schema_type in ["db_schema", "api_schema", "ui_schema", "auth_schema"]:
+                    for schema_type in [
+                        "db_schema",
+                        "api_schema",
+                        "ui_schema",
+                        "auth_schema",
+                    ]:
                         errs = len(report.get(f"{schema_type}_errors", []))
                         if errs > max_errs:
                             max_errs = errs
                             worst_schema = schema_type
-                    
+
                     if worst_schema:
                         task_map = {
                             "db_schema": "task_generate_db_schema",
                             "api_schema": "task_generate_api_schema",
                             "ui_schema": "task_generate_ui_schema",
-                            "auth_schema": "task_generate_auth_schema"
+                            "auth_schema": "task_generate_auth_schema",
                         }
                         gen_task = task_map.get(worst_schema)
-                        if gen_task and gen_task in getattr(session, 'stage_models', {}):
+                        if gen_task and gen_task in getattr(
+                            session, "stage_models", {}
+                        ):
                             target_model = session.stage_models[gen_task]
-                            logger.info("[routing] Repair task targeting failed model: %s (from %s)", target_model, worst_schema)
-                
-                if agent and getattr(agent, 'llm', None):
-                    base_temp = agent.llm.temperature if hasattr(agent.llm, 'temperature') else 0.1
+                            logger.info(
+                                "[routing] Repair task targeting failed model: %s (from %s)",
+                                target_model,
+                                worst_schema,
+                            )
+
+                if agent and getattr(agent, "llm", None):
+                    base_temp = (
+                        agent.llm.temperature
+                        if hasattr(agent.llm, "temperature")
+                        else 0.1
+                    )
                     current_model = target_model or model_for_stage(agent_name)[0]
-                    
+
                     # Distribute initial request across all keys to prevent Key 1 taking 100% of the load
                     if "gemini" in current_model.lower() and GEMINI_KEYS:
                         target_api_key = get_next_gemini_key()
                     elif "groq" in current_model.lower() and GROQ_KEYS:
                         target_api_key = get_next_groq_key()
-                        
+
                     if target_model or target_api_key:
                         kwargs = {"model": current_model, "temperature": base_temp}
                         if target_api_key:
@@ -892,24 +1049,40 @@ async def run_pipeline(session: PipelineSession) -> None:
                                 os.environ["GEMINI_API_KEY"] = target_api_key
                             elif "groq" in current_model.lower():
                                 os.environ["GROQ_API_KEY"] = target_api_key
-                        
+
                         # Re-instantiate agent.llm with the targeted model/key
                         agent.llm = LLM(**kwargs)
 
-                logger.debug("[session:%s] Agent instantiated: %s (model=%s)", session.session_id, agent_name, getattr(agent.llm, "model", "?"))
-                _primary_model, _fallback_model, _primary_temp = model_for_stage(agent_name)
+                logger.debug(
+                    "[session:%s] Agent instantiated: %s (model=%s)",
+                    session.session_id,
+                    agent_name,
+                    getattr(agent.llm, "model", "?"),
+                )
+                _primary_model, _fallback_model, _primary_temp = model_for_stage(
+                    agent_name
+                )
                 _active_model = _primary_model
-                logger.debug("[routing] stage=%s primary=%s fallback=%s", task_name, _primary_model, _fallback_model)
+                logger.debug(
+                    "[routing] stage=%s primary=%s fallback=%s",
+                    task_name,
+                    _primary_model,
+                    _fallback_model,
+                )
             else:
                 logger.warning(
                     "[session:%s] No @agent method found for name=%r on ProtoFlowCrew",
-                    session.session_id, agent_name,
+                    session.session_id,
+                    agent_name,
                 )
         else:
             logger.warning(
                 "[session:%s] agent_name is not a string: %r (type=%s). "
                 "Check tasks.yaml for task '%s'.",
-                session.session_id, agent_name, type(agent_name).__name__, task_name,
+                session.session_id,
+                agent_name,
+                type(agent_name).__name__,
+                task_name,
             )
 
         max_retries = 5
@@ -918,7 +1091,9 @@ async def run_pipeline(session: PipelineSession) -> None:
             # Instantiate task via the @task method
             task_creator = getattr(crew_instance, task_name, None)
             if not callable(task_creator):
-                raise ValueError(f"No @task method found for '{task_name}' on ProtoFlowCrew")
+                raise ValueError(
+                    f"No @task method found for '{task_name}' on ProtoFlowCrew"
+                )
             task_obj = task_creator()
 
             # Assign agent to task
@@ -930,9 +1105,9 @@ async def run_pipeline(session: PipelineSession) -> None:
                 tasks=[task_obj],
                 verbose=True,
                 memory=False,  # No OpenAI embedder; avoids ChromaDB CHROMA_OPENAI_API_KEY error
-                cache=False,   # Disable LLM caching to avoid returning stale broken outputs
+                cache=False,  # Disable LLM caching to avoid returning stale broken outputs
             )
-            
+
             try:
                 result = await loop.run_in_executor(
                     None,
@@ -942,34 +1117,76 @@ async def run_pipeline(session: PipelineSession) -> None:
             except Exception as e:
                 err_str = str(e)
                 # 5xx provider error -> switch to fallback model from routing config
-                is_5xx = any(code in err_str for code in ["500", "502", "503", "504"]) and "RateLimitError" not in type(e).__name__
+                is_5xx = (
+                    any(code in err_str for code in ["500", "502", "503", "504"])
+                    and "RateLimitError" not in type(e).__name__
+                )
                 if is_5xx and attempt == 0 and agent and agent.llm:
-                    _fb = _fallback_model if "_fallback_model" in dir() else model_for_stage(agent_name)[1]
-                    logger.warning("[routing] FALLBACK stage=%s primary=%s -> fallback=%s reason=5xx",
-                                   task_name, getattr(agent.llm, "model", "?"), _fb)
-                    agent.llm = LLM(model=_fb, temperature=_primary_temp if "_primary_temp" in dir() else 0.1)
+                    _fb = (
+                        _fallback_model
+                        if "_fallback_model" in dir()
+                        else model_for_stage(agent_name)[1]
+                    )
+                    logger.warning(
+                        "[routing] FALLBACK stage=%s primary=%s -> fallback=%s reason=5xx",
+                        task_name,
+                        getattr(agent.llm, "model", "?"),
+                        _fb,
+                    )
+                    agent.llm = LLM(
+                        model=_fb,
+                        temperature=_primary_temp if "_primary_temp" in dir() else 0.1,
+                    )
                     continue
                 if is_5xx and attempt == 0 and agent and agent.llm:
-                    _fb = _fallback_model if "_fallback_model" in dir() else model_for_stage(agent_name)[1]
-                    logger.warning("[routing] FALLBACK stage=%s primary=%s -> fallback=%s reason=5xx",
-                                   task_name, getattr(agent.llm, "model", "?"), _fb)
-                    agent.llm = LLM(model=_fb, temperature=_primary_temp if "_primary_temp" in dir() else 0.1)
+                    _fb = (
+                        _fallback_model
+                        if "_fallback_model" in dir()
+                        else model_for_stage(agent_name)[1]
+                    )
+                    logger.warning(
+                        "[routing] FALLBACK stage=%s primary=%s -> fallback=%s reason=5xx",
+                        task_name,
+                        getattr(agent.llm, "model", "?"),
+                        _fb,
+                    )
+                    agent.llm = LLM(
+                        model=_fb,
+                        temperature=_primary_temp if "_primary_temp" in dir() else 0.1,
+                    )
                     _active_model = _fb
                     continue
-                if "RateLimitError" in type(e).__name__ or "rate_limit" in err_str.lower() or "rate limit reached" in err_str.lower():
-                    if "Request too large" in err_str and "Limit" in err_str and "Requested" in err_str:
+                if (
+                    "RateLimitError" in type(e).__name__
+                    or "rate_limit" in err_str.lower()
+                    or "rate limit reached" in err_str.lower()
+                ):
+                    if (
+                        "Request too large" in err_str
+                        and "Limit" in err_str
+                        and "Requested" in err_str
+                    ):
                         # Request is too large for the current model — fall back to the
                         # smallest available Groq model regardless of which model we started with.
-                        if agent and agent.llm and "llama-3.1-8b-instant" not in str(agent.llm.model):
+                        if (
+                            agent
+                            and agent.llm
+                            and "llama-3.1-8b-instant" not in str(agent.llm.model)
+                        ):
                             logger.warning(
                                 "[session:%s] Request size exceeds model limit for %s. Falling back to groq/llama-3.1-8b-instant.",
-                                session.session_id, agent.llm.model
+                                session.session_id,
+                                agent.llm.model,
                             )
-                            agent.llm = LLM(model="groq/llama-3.1-8b-instant", temperature=0.1)
+                            agent.llm = LLM(
+                                model="groq/llama-3.1-8b-instant", temperature=0.1
+                            )
                             _active_model = "groq/llama-3.1-8b-instant"
                             continue  # Try immediately with fallback model
                         else:
-                            raise ValueError(f"Request size exceeds limit even for fallback model: {err_str}")
+                            raise ValueError(
+                                f"Request size exceeds limit even for fallback model: {err_str}"
+                            )
 
                     # If not a request size limit, it's a TPD limit or standard TPM timeout.
                     # Rotate API key if we have multiple keys available.
@@ -982,12 +1199,21 @@ async def run_pipeline(session: PipelineSession) -> None:
                         new_gemini_key = GEMINI_KEYS[attempt % len(GEMINI_KEYS)]
                         logger.warning(
                             "[session:%s] Rate limit hit on Gemini for %s. Rotating GEMINI_API_KEY...",
-                            session.session_id, task_name
+                            session.session_id,
+                            task_name,
                         )
                         os.environ["GEMINI_API_KEY"] = new_gemini_key
                         if agent and agent.llm:
-                            temp = agent.llm.temperature if hasattr(agent.llm, "temperature") else 0.2
-                            agent.llm = LLM(model=_current_model, temperature=temp, api_key=new_gemini_key)
+                            temp = (
+                                agent.llm.temperature
+                                if hasattr(agent.llm, "temperature")
+                                else 0.2
+                            )
+                            agent.llm = LLM(
+                                model=_current_model,
+                                temperature=temp,
+                                api_key=new_gemini_key,
+                            )
                         if attempt < len(GEMINI_KEYS):
                             continue
                         rotated = True
@@ -995,16 +1221,23 @@ async def run_pipeline(session: PipelineSession) -> None:
                         new_key = GROQ_KEYS[attempt % len(GROQ_KEYS)]
                         logger.warning(
                             "[session:%s] Rate limit / TPD hit for %s. Rotating to another GROQ_API_KEY...",
-                            session.session_id, task_name
+                            session.session_id,
+                            task_name,
                         )
                         if agent and agent.llm:
                             # Re-instantiate LLM with new API key, ensure 'groq/' prefix
-                            temp = agent.llm.temperature if hasattr(agent.llm, 'temperature') else 0.1
+                            temp = (
+                                agent.llm.temperature
+                                if hasattr(agent.llm, "temperature")
+                                else 0.1
+                            )
                             model_name = agent.llm.model
                             if not model_name.startswith("groq/"):
                                 model_name = f"groq/{model_name}"
-                            agent.llm = LLM(model=model_name, temperature=temp, api_key=new_key)
-                        
+                            agent.llm = LLM(
+                                model=model_name, temperature=temp, api_key=new_key
+                            )
+
                         # Only retry immediately if we haven't exhausted all our keys
                         if attempt < len(GROQ_KEYS):
                             continue
@@ -1012,17 +1245,31 @@ async def run_pipeline(session: PipelineSession) -> None:
                     else:
                         # Unconditionally fallback to OpenRouter equivalent on 429 if no more keys
                         if agent and agent.llm:
-                            from src.compiler.tools.routing import get_openrouter_equivalent
+                            from src.compiler.tools.routing import (
+                                get_openrouter_equivalent,
+                            )
+
                             _fb = get_openrouter_equivalent(_current_model)
-                            logger.warning("[routing] FALLBACK stage=%s primary=%s -> fallback=%s reason=429_RateLimit",
-                                           task_name, getattr(agent.llm, "model", "?"), _fb)
-                            agent.llm = LLM(model=_fb, temperature=_primary_temp if "_primary_temp" in dir() else 0.1)
+                            logger.warning(
+                                "[routing] FALLBACK stage=%s primary=%s -> fallback=%s reason=429_RateLimit",
+                                task_name,
+                                getattr(agent.llm, "model", "?"),
+                                _fb,
+                            )
+                            agent.llm = LLM(
+                                model=_fb,
+                                temperature=(
+                                    _primary_temp if "_primary_temp" in dir() else 0.1
+                                ),
+                            )
                             continue
 
                     if attempt < max_retries - 1:
                         # Parse "Please try again in 1h5m21.665s." or "21.665s."
                         wait_time = 30.0
-                        match = re.search(r'try again in (?:(\d+)h)?(?:(\d+)m)?([\d\.]+)s', err_str)
+                        match = re.search(
+                            r"try again in (?:(\d+)h)?(?:(\d+)m)?([\d\.]+)s", err_str
+                        )
                         if match:
                             h_str = match.group(1)
                             m_str = match.group(2)
@@ -1030,47 +1277,67 @@ async def run_pipeline(session: PipelineSession) -> None:
                             hours = int(h_str) if h_str else 0
                             minutes = int(m_str) if m_str else 0
                             seconds = float(s_str)
-                            wait_time = (hours * 3600) + (minutes * 60) + seconds + 2.0  # 2s buffer
-                        
+                            wait_time = (
+                                (hours * 3600) + (minutes * 60) + seconds + 2.0
+                            )  # 2s buffer
+
                         if wait_time > 120.0:
                             logger.error(
                                 "[session:%s] Rate limit wait time too long (%.1fs). Failing task.",
-                                session.session_id, wait_time
+                                session.session_id,
+                                wait_time,
                             )
                             raise e
 
                         logger.warning(
                             "[session:%s] Rate limit hit for %s. Sleeping %.1fs before attempt %d. Error: %s",
-                            session.session_id, task_name, wait_time, attempt + 2, err_str.split('"message":')[1].split(',"type"')[0] if '"message":' in err_str else err_str[:100]
+                            session.session_id,
+                            task_name,
+                            wait_time,
+                            attempt + 2,
+                            (
+                                err_str.split('"message":')[1].split(',"type"')[0]
+                                if '"message":' in err_str
+                                else err_str[:100]
+                            ),
                         )
                         await asyncio.sleep(wait_time)
                         continue
                 # If it's not a rate limit error, or we're out of retries, raise it
                 raise e
-        
+
         if result is None:
-            raise RuntimeError(f"Task '{task_name}' failed after {max_retries} retries due to rate limits or API errors.")
+            raise RuntimeError(
+                f"Task '{task_name}' failed after {max_retries} retries due to rate limits or API errors."
+            )
 
         # Token extraction and cost estimation
-        if hasattr(result, 'token_usage'):
+        if hasattr(result, "token_usage"):
             usage = result.token_usage
-            if hasattr(usage, 'total_tokens'):
+            if hasattr(usage, "total_tokens"):
                 session.total_tokens += usage.total_tokens
             elif isinstance(usage, dict):
-                session.total_tokens += usage.get('total_tokens', 0)
+                session.total_tokens += usage.get("total_tokens", 0)
         # Estimate cost using routing cost_table
-        if hasattr(result, 'token_usage') and result.token_usage:
+        if hasattr(result, "token_usage") and result.token_usage:
             usage = result.token_usage
-            _input_t = getattr(usage, 'prompt_tokens', 0) or (usage.get('prompt_tokens', 0) if isinstance(usage, dict) else 0)
-            _output_t = getattr(usage, 'completion_tokens', 0) or (usage.get('completion_tokens', 0) if isinstance(usage, dict) else 0)
+            _input_t = getattr(usage, "prompt_tokens", 0) or (
+                usage.get("prompt_tokens", 0) if isinstance(usage, dict) else 0
+            )
+            _output_t = getattr(usage, "completion_tokens", 0) or (
+                usage.get("completion_tokens", 0) if isinstance(usage, dict) else 0
+            )
             _used_model = session.stage_models.get(task_name)
             _cost = cost_for_tokens(_used_model, _input_t, _output_t)
-            session.stage_costs[task_name] = session.stage_costs.get(task_name, 0.0) + _cost
+            session.stage_costs[task_name] = (
+                session.stage_costs.get(task_name, 0.0) + _cost
+            )
 
         raw = result.raw if hasattr(result, "raw") else str(result)
         logger.debug(
             "[session:%s] _kickoff_task raw output length: %d chars",
-            session.session_id, len(raw),
+            session.session_id,
+            len(raw),
         )
         parsed = extract_json(raw)
 
@@ -1079,19 +1346,43 @@ async def run_pipeline(session: PipelineSession) -> None:
             first_key = list(parsed.keys())[0]
             val = parsed[first_key]
             wrapper_keys = {
-                "db_schema", "api_schema", "ui_schema", "auth_schema",
-                "validation_report", "repair_report", "runtime_report", "log_output",
-                "task_validate_runtime", "task_log_progress",
-                "schema", "result", "response", "output", "log_progress", "progress_log"
+                "db_schema",
+                "api_schema",
+                "ui_schema",
+                "auth_schema",
+                "validation_report",
+                "repair_report",
+                "runtime_report",
+                "log_output",
+                "task_validate_runtime",
+                "task_log_progress",
+                "schema",
+                "result",
+                "response",
+                "output",
+                "log_progress",
+                "progress_log",
             }
-            if first_key in wrapper_keys or first_key.endswith("_schema") or first_key.endswith("_report"):
+            if (
+                first_key in wrapper_keys
+                or first_key.endswith("_schema")
+                or first_key.endswith("_report")
+            ):
                 if isinstance(val, dict):
-                    logger.warning("[session:%s] Unwrapping nested LLM dict %s", session.session_id, first_key)
+                    logger.warning(
+                        "[session:%s] Unwrapping nested LLM dict %s",
+                        session.session_id,
+                        first_key,
+                    )
                     parsed = val
 
         # Wrap lists in expected root keys if LLM forgot the root object
         if isinstance(parsed, list):
-            logger.warning("[session:%s] LLM wrapped output in list. Fixing based on task_name: %s", session.session_id, task_name)
+            logger.warning(
+                "[session:%s] LLM wrapped output in list. Fixing based on task_name: %s",
+                session.session_id,
+                task_name,
+            )
             if task_name == "task_generate_api_schema":
                 parsed = {"endpoints": parsed}
             elif task_name == "task_generate_ui_schema":
@@ -1102,11 +1393,12 @@ async def run_pipeline(session: PipelineSession) -> None:
                 parsed = parsed[0]
             else:
                 parsed = {}
-                
+
         if not isinstance(parsed, dict):
             logger.error(
                 "[session:%s] LLM output parsed as %s instead of dict. Coercing to empty dict.",
-                session.session_id, type(parsed).__name__
+                session.session_id,
+                type(parsed).__name__,
             )
             return {}
         return parsed
@@ -1122,7 +1414,9 @@ async def run_pipeline(session: PipelineSession) -> None:
         confidence = result.get("confidence", 1.0)
         logger.info(
             "[session:%s] Intent extracted. confidence=%.2f assumptions=%d",
-            session.session_id, confidence, len(result.get("assumptions", [])),
+            session.session_id,
+            confidence,
+            len(result.get("assumptions", [])),
         )
 
         # HITL is always-on: prefer the LLM's own questions from hitl_required.questions
@@ -1146,17 +1440,12 @@ async def run_pipeline(session: PipelineSession) -> None:
             questions = llm_questions[:1]  # typically 1 confirmatory question
             trigger = "always_on"
 
-        answers = await _wait_for_hitl(
-            session, "intent_extraction", trigger, questions
-        )
+        answers = await _wait_for_hitl(session, "intent_extraction", trigger, questions)
         result["clarifications_received"] = answers
         session.intent = result
         return result
 
-    session.intent = await _run_stage(
-        session, "intent_extraction",
-        _stage_intent()
-    )
+    session.intent = await _run_stage(session, "intent_extraction", _stage_intent())
 
     # ─────────────────────────────────────────────────────────────────────────
     # STAGE 2 — Architecture Design
@@ -1179,8 +1468,7 @@ async def run_pipeline(session: PipelineSession) -> None:
         return result
 
     session.architecture = await _run_stage(
-        session, "architecture_design",
-        _stage_architecture()
+        session, "architecture_design", _stage_architecture()
     )
 
     # ── Modification checkpoint (before schema generation) ────────────────────
@@ -1201,7 +1489,8 @@ async def run_pipeline(session: PipelineSession) -> None:
         session.db_schema = result
         logger.info(
             "[session:%s] DB schema generated. tables=%d",
-            session.session_id, len(result.get("tables", [])),
+            session.session_id,
+            len(result.get("tables", [])),
         )
         return result
 
@@ -1217,7 +1506,8 @@ async def run_pipeline(session: PipelineSession) -> None:
         session.api_schema = result
         logger.info(
             "[session:%s] API schema generated. endpoints=%d",
-            session.session_id, len(result.get("endpoints", [])),
+            session.session_id,
+            len(result.get("endpoints", [])),
         )
         return result
 
@@ -1233,7 +1523,8 @@ async def run_pipeline(session: PipelineSession) -> None:
         session.ui_schema = result
         logger.info(
             "[session:%s] UI schema generated. pages=%d",
-            session.session_id, len(result.get("pages", [])),
+            session.session_id,
+            len(result.get("pages", [])),
         )
         return result
 
@@ -1249,7 +1540,8 @@ async def run_pipeline(session: PipelineSession) -> None:
         session.auth_schema = result
         logger.info(
             "[session:%s] Auth schema generated. roles=%s",
-            session.session_id, result.get("roles", []),
+            session.session_id,
+            result.get("roles", []),
         )
         return result
 
@@ -1259,20 +1551,33 @@ async def run_pipeline(session: PipelineSession) -> None:
     # ─────────────────────────────────────────────────────────────────────────
     async def _run_schema_stage(stage_name: str, task_coro) -> dict:
         model = model_for_stage(stage_name)[0]
-        await _emit(session, "stage_update", {
-            "stage": stage_name, "status": "running",
-            "model": model, "latency_ms": 0, "output_summary": "",
-        })
+        await _emit(
+            session,
+            "stage_update",
+            {
+                "stage": stage_name,
+                "status": "running",
+                "model": model,
+                "latency_ms": 0,
+                "output_summary": "",
+            },
+        )
         t_start = time.monotonic()
         result = await task_coro()
         latency_ms = int((time.monotonic() - t_start) * 1000)
         # Record to session so stage_latencies in eval_metrics is complete
         session.stage_latencies[stage_name] = latency_ms
-        await _emit(session, "stage_update", {
-            "stage": stage_name, "status": "complete",
-            "model": model, "latency_ms": latency_ms,
-            "output_summary": json.dumps(result)[:120],
-        })
+        await _emit(
+            session,
+            "stage_update",
+            {
+                "stage": stage_name,
+                "status": "complete",
+                "model": model,
+                "latency_ms": latency_ms,
+                "output_summary": json.dumps(result)[:120],
+            },
+        )
         return result
 
     db_result = await _run_schema_stage("db_schema", _stage_db)
@@ -1290,8 +1595,8 @@ async def run_pipeline(session: PipelineSession) -> None:
     # ─────────────────────────────────────────────────────────────────────────
     # STAGE 3.5 — Workflow Stub Generation (runs only when integrations requested)
     # ─────────────────────────────────────────────────────────────────────────
-    from compiler.integrations.registry import REGISTRY, get_integration, get_action
-    from compiler.schemas.contracts import WorkflowTrigger, WorkflowStub
+    from compiler.integrations.registry import REGISTRY, get_action, get_integration
+    from compiler.schemas.contracts import WorkflowStub, WorkflowTrigger
 
     async def _stage_workflow_stubs() -> list:
         """
@@ -1304,60 +1609,72 @@ async def run_pipeline(session: PipelineSession) -> None:
         """
         requested = (session.intent or {}).get("integrations", [])
         if not requested:
-            logger.info("[session:%s] No integrations requested — skipping workflow stubs.", session.session_id)
+            logger.info(
+                "[session:%s] No integrations requested — skipping workflow stubs.",
+                session.session_id,
+            )
             return []
 
-        logger.info("[session:%s] Generating workflow stubs for integrations: %s", session.session_id, requested)
+        logger.info(
+            "[session:%s] Generating workflow stubs for integrations: %s",
+            session.session_id,
+            requested,
+        )
 
         # STEP 1 — Deterministic skeleton generation
         # Priority action per integration (first match wins)
         _ACTION_PRIORITY: dict[str, str] = {
-            "slack":        "send_message",
-            "gmail":        "send_email",
-            "stripe":       "create_customer",
-            "whatsapp":     "send_template_message",
-            "webhook":      "post_payload",
-            "jira":         "create_issue",
-            "google_sheets":"append_row",
-            "hubspot":      "create_contact",
-            "notion":       "create_page",
-            "twilio_sms":   "send_sms",
+            "slack": "send_message",
+            "gmail": "send_email",
+            "stripe": "create_customer",
+            "whatsapp": "send_template_message",
+            "webhook": "post_payload",
+            "jira": "create_issue",
+            "google_sheets": "append_row",
+            "hubspot": "create_contact",
+            "notion": "create_page",
+            "twilio_sms": "send_sms",
         }
         # Default event per integration type
         _EVENT_DEFAULT: dict[str, str] = {
-            "slack":        "status_changed",
-            "gmail":        "created",
-            "stripe":       "created",
-            "whatsapp":     "status_changed",
-            "webhook":      "created",
-            "jira":         "created",
-            "google_sheets":"updated",
-            "hubspot":      "updated",
-            "notion":       "created",
-            "twilio_sms":   "status_changed",
+            "slack": "status_changed",
+            "gmail": "created",
+            "stripe": "created",
+            "whatsapp": "status_changed",
+            "webhook": "created",
+            "jira": "created",
+            "google_sheets": "updated",
+            "hubspot": "updated",
+            "notion": "created",
+            "twilio_sms": "status_changed",
         }
 
         # Get entity names from architecture for trigger entity matching
         arch_entities = []
         if session.architecture:
-            arch_entities = [e.get("name", "") if isinstance(e, dict) else getattr(e, "name", "")
-                             for e in (session.architecture.get("entities", []) if isinstance(session.architecture, dict)
-                             else getattr(session.architecture, "entities", []))]
+            arch_entities = [
+                e.get("name", "") if isinstance(e, dict) else getattr(e, "name", "")
+                for e in (
+                    session.architecture.get("entities", [])
+                    if isinstance(session.architecture, dict)
+                    else getattr(session.architecture, "entities", [])
+                )
+            ]
 
         def _best_entity(integration_id: str) -> str:
             """Pick the most relevant entity for a given integration."""
             # Heuristic: prefer entity names that match integration domain keywords
             _ENTITY_HINTS: dict[str, list[str]] = {
-                "slack":        ["task", "deal", "issue", "ticket", "order", "project"],
-                "gmail":        ["order", "user", "customer", "invoice", "booking"],
-                "stripe":       ["user", "customer", "subscription", "payment", "order"],
-                "whatsapp":     ["deal", "order", "booking", "appointment", "lead"],
-                "webhook":      ["event", "record", "item"],
-                "jira":         ["task", "issue", "bug", "ticket", "story"],
-                "google_sheets":["report", "record", "entry", "row", "data"],
-                "hubspot":      ["contact", "lead", "deal", "customer"],
-                "notion":       ["note", "page", "document", "record"],
-                "twilio_sms":   ["user", "customer", "booking", "appointment"],
+                "slack": ["task", "deal", "issue", "ticket", "order", "project"],
+                "gmail": ["order", "user", "customer", "invoice", "booking"],
+                "stripe": ["user", "customer", "subscription", "payment", "order"],
+                "whatsapp": ["deal", "order", "booking", "appointment", "lead"],
+                "webhook": ["event", "record", "item"],
+                "jira": ["task", "issue", "bug", "ticket", "story"],
+                "google_sheets": ["report", "record", "entry", "row", "data"],
+                "hubspot": ["contact", "lead", "deal", "customer"],
+                "notion": ["note", "page", "document", "record"],
+                "twilio_sms": ["user", "customer", "booking", "appointment"],
             }
             hints = _ENTITY_HINTS.get(integration_id, [])
             for hint in hints:
@@ -1372,9 +1689,16 @@ async def run_pipeline(session: PipelineSession) -> None:
             integ_id_lower = integ_id.lower().strip()
             integration = get_integration(integ_id_lower)
             if not integration:
-                logger.warning("[session:%s] Requested integration %r not in registry — skipping.", session.session_id, integ_id)
+                logger.warning(
+                    "[session:%s] Requested integration %r not in registry — skipping.",
+                    session.session_id,
+                    integ_id,
+                )
                 continue
-            action_id = _ACTION_PRIORITY.get(integ_id_lower, integration.actions[0].id if integration.actions else None)
+            action_id = _ACTION_PRIORITY.get(
+                integ_id_lower,
+                integration.actions[0].id if integration.actions else None,
+            )
             if not action_id:
                 continue
             entity = _best_entity(integ_id_lower)
@@ -1389,10 +1713,18 @@ async def run_pipeline(session: PipelineSession) -> None:
                 "is_valid": True,
             }
             skeletons.append(skeleton)
-            logger.info("[session:%s] Stub skeleton: %s -> %s.%s", session.session_id, entity, integ_id_lower, action_id)
+            logger.info(
+                "[session:%s] Stub skeleton: %s -> %s.%s",
+                session.session_id,
+                entity,
+                integ_id_lower,
+                action_id,
+            )
 
         if not skeletons:
-            logger.warning("[session:%s] No valid skeletons generated.", session.session_id)
+            logger.warning(
+                "[session:%s] No valid skeletons generated.", session.session_id
+            )
             return []
 
         # STEP 2 — LLM enrichment
@@ -1402,10 +1734,10 @@ async def run_pipeline(session: PipelineSession) -> None:
             integ = get_integration(integ_id)
             if integ:
                 registry_summary[integ_id] = {
-                    "actions": [{
-                        "id": a.id,
-                        "input_fields": [f.name for f in a.input_schema]
-                    } for a in integ.actions]
+                    "actions": [
+                        {"id": a.id, "input_fields": [f.name for f in a.input_schema]}
+                        for a in integ.actions
+                    ]
                 }
 
         # Compact entity schemas for payload mapping context
@@ -1418,12 +1750,17 @@ async def run_pipeline(session: PipelineSession) -> None:
                 "stub_skeletons": json.dumps(skeletons),
                 "entity_schemas": entity_schemas_compact,
                 "user_prompt": session.prompt[:300],
-            }
+            },
         )
 
         # LLM may return a dict wrapper or a list directly
         if isinstance(enriched_raw, dict):
-            enriched_list = enriched_raw.get("workflow_stubs", enriched_raw.get("stubs", list(enriched_raw.values())[0] if enriched_raw else []))
+            enriched_list = enriched_raw.get(
+                "workflow_stubs",
+                enriched_raw.get(
+                    "stubs", list(enriched_raw.values())[0] if enriched_raw else []
+                ),
+            )
         elif isinstance(enriched_raw, list):
             enriched_list = enriched_raw
         else:
@@ -1439,12 +1776,21 @@ async def run_pipeline(session: PipelineSession) -> None:
             # Registry validation — deterministic
             action = get_action(integ_id, act_id)
             if not action:
-                logger.warning("[session:%s] Stub dropped — invalid registry ref %s.%s", session.session_id, integ_id, act_id)
+                logger.warning(
+                    "[session:%s] Stub dropped — invalid registry ref %s.%s",
+                    session.session_id,
+                    integ_id,
+                    act_id,
+                )
                 continue
             # Ensure trigger is a dict before passing to Pydantic
             trigger_data = stub_data.get("trigger", {})
             if not isinstance(trigger_data, dict):
-                trigger_data = {"entity": "Record", "event": "created", "condition": None}
+                trigger_data = {
+                    "entity": "Record",
+                    "event": "created",
+                    "condition": None,
+                }
             try:
                 stub = WorkflowStub(
                     name=stub_data.get("name", f"{integ_id} workflow"),
@@ -1457,23 +1803,30 @@ async def run_pipeline(session: PipelineSession) -> None:
                 )
                 validated_stubs.append(stub)
             except Exception as e:
-                logger.warning("[session:%s] Stub validation failed: %s — %s", session.session_id, stub_data.get("name",""), e)
+                logger.warning(
+                    "[session:%s] Stub validation failed: %s — %s",
+                    session.session_id,
+                    stub_data.get("name", ""),
+                    e,
+                )
 
-        logger.info("[session:%s] Workflow stubs generated: %d valid, %d dropped.",
-                    session.session_id, len(validated_stubs), len(enriched_list) - len(validated_stubs))
+        logger.info(
+            "[session:%s] Workflow stubs generated: %d valid, %d dropped.",
+            session.session_id,
+            len(validated_stubs),
+            len(enriched_list) - len(validated_stubs),
+        )
         return validated_stubs
 
     # Run workflow stubs stage (only fires if integrations were requested)
     _workflow_stubs_result = await _run_stage(
-        session, "workflow_stubs",
-        _stage_workflow_stubs()
+        session, "workflow_stubs", _stage_workflow_stubs()
     )
     # _run_stage returns a dict on error, list on success — handle both
     if isinstance(_workflow_stubs_result, list):
         session.workflow_stubs = _workflow_stubs_result
     else:
         session.workflow_stubs = []
-
 
     # ─────────────────────────────────────────────────────────────────────────
 
@@ -1482,48 +1835,69 @@ async def run_pipeline(session: PipelineSession) -> None:
     # Runs only when integrations were requested in the user prompt.
     # Deterministic skeletons + LLM enrichment + registry validation.
     # ─────────────────────────────────────────────────────────────────────────
-    from compiler.integrations.registry import get_integration, get_action
-    from compiler.schemas.contracts import WorkflowTrigger, WorkflowStub
+    from compiler.integrations.registry import get_action, get_integration
+    from compiler.schemas.contracts import WorkflowStub, WorkflowTrigger
 
     async def _stage_workflow_stubs() -> list:
         requested = (session.intent or {}).get("integrations", [])
         if not requested:
-            logger.info("[session:%s] No integrations requested — skipping workflow stubs.", session.session_id)
+            logger.info(
+                "[session:%s] No integrations requested — skipping workflow stubs.",
+                session.session_id,
+            )
             return []
 
-        logger.info("[session:%s] Generating workflow stubs for: %s", session.session_id, requested)
+        logger.info(
+            "[session:%s] Generating workflow stubs for: %s",
+            session.session_id,
+            requested,
+        )
 
         # Priority action per integration (deterministic skeleton)
         _ACTION_PRIORITY = {
-            "slack": "send_message", "gmail": "send_email",
-            "stripe": "create_customer", "whatsapp": "send_template_message",
-            "webhook": "post_payload", "jira": "create_issue",
-            "google_sheets": "append_row", "hubspot": "create_contact",
-            "notion": "create_page", "twilio_sms": "send_sms",
+            "slack": "send_message",
+            "gmail": "send_email",
+            "stripe": "create_customer",
+            "whatsapp": "send_template_message",
+            "webhook": "post_payload",
+            "jira": "create_issue",
+            "google_sheets": "append_row",
+            "hubspot": "create_contact",
+            "notion": "create_page",
+            "twilio_sms": "send_sms",
         }
         _EVENT_DEFAULT = {
-            "slack": "status_changed", "gmail": "created",
-            "stripe": "created", "whatsapp": "status_changed",
-            "webhook": "created", "jira": "created",
-            "google_sheets": "updated", "hubspot": "updated",
-            "notion": "created", "twilio_sms": "status_changed",
+            "slack": "status_changed",
+            "gmail": "created",
+            "stripe": "created",
+            "whatsapp": "status_changed",
+            "webhook": "created",
+            "jira": "created",
+            "google_sheets": "updated",
+            "hubspot": "updated",
+            "notion": "created",
+            "twilio_sms": "status_changed",
         }
         _ENTITY_HINTS = {
-            "slack":         ["task", "deal", "issue", "ticket", "order"],
-            "gmail":         ["order", "user", "customer", "invoice", "booking"],
-            "stripe":        ["user", "customer", "subscription", "payment", "order"],
-            "whatsapp":      ["deal", "order", "booking", "appointment", "lead"],
-            "webhook":       ["event", "record", "item"],
-            "jira":          ["task", "issue", "bug", "ticket"],
+            "slack": ["task", "deal", "issue", "ticket", "order"],
+            "gmail": ["order", "user", "customer", "invoice", "booking"],
+            "stripe": ["user", "customer", "subscription", "payment", "order"],
+            "whatsapp": ["deal", "order", "booking", "appointment", "lead"],
+            "webhook": ["event", "record", "item"],
+            "jira": ["task", "issue", "bug", "ticket"],
             "google_sheets": ["report", "record", "entry"],
-            "hubspot":       ["contact", "lead", "deal", "customer"],
-            "notion":        ["note", "page", "document"],
-            "twilio_sms":    ["user", "customer", "booking", "appointment"],
+            "hubspot": ["contact", "lead", "deal", "customer"],
+            "notion": ["note", "page", "document"],
+            "twilio_sms": ["user", "customer", "booking", "appointment"],
         }
 
         arch = session.architecture or {}
         arch_entities = []
-        raw_entities = arch.get("entities", []) if isinstance(arch, dict) else getattr(arch, "entities", [])
+        raw_entities = (
+            arch.get("entities", [])
+            if isinstance(arch, dict)
+            else getattr(arch, "entities", [])
+        )
         for e in raw_entities:
             name = e.get("name", "") if isinstance(e, dict) else getattr(e, "name", "")
             if name:
@@ -1543,23 +1917,37 @@ async def run_pipeline(session: PipelineSession) -> None:
             iid = integ_id.lower().strip()
             integration = get_integration(iid)
             if not integration:
-                logger.warning("[session:%s] Integration %r not in registry — skipped.", session.session_id, iid)
+                logger.warning(
+                    "[session:%s] Integration %r not in registry — skipped.",
+                    session.session_id,
+                    iid,
+                )
                 continue
-            action_id = _ACTION_PRIORITY.get(iid) or (integration.actions[0].id if integration.actions else None)
+            action_id = _ACTION_PRIORITY.get(iid) or (
+                integration.actions[0].id if integration.actions else None
+            )
             if not action_id:
                 continue
             entity = _best_entity(iid)
             event = _EVENT_DEFAULT.get(iid, "status_changed")
-            skeletons.append({
-                "name": f"Trigger {integration.display_name} when {entity} {event.replace(chr(95), chr(32))}",
-                "trigger": {"entity": entity, "event": event, "condition": None},
-                "integration_id": iid,
-                "action_id": action_id,
-                "payload_mapping": {},
-                "description": "",
-                "is_valid": True,
-            })
-            logger.info("[session:%s] Skeleton: %s -> %s.%s", session.session_id, entity, iid, action_id)
+            skeletons.append(
+                {
+                    "name": f"Trigger {integration.display_name} when {entity} {event.replace(chr(95), chr(32))}",
+                    "trigger": {"entity": entity, "event": event, "condition": None},
+                    "integration_id": iid,
+                    "action_id": action_id,
+                    "payload_mapping": {},
+                    "description": "",
+                    "is_valid": True,
+                }
+            )
+            logger.info(
+                "[session:%s] Skeleton: %s -> %s.%s",
+                session.session_id,
+                entity,
+                iid,
+                action_id,
+            )
 
         if not skeletons:
             return []
@@ -1570,8 +1958,10 @@ async def run_pipeline(session: PipelineSession) -> None:
             integ = get_integration(s["integration_id"])
             if integ:
                 registry_summary[s["integration_id"]] = {
-                    "actions": [{"id": a.id, "input_fields": [f.name for f in a.input_schema]}
-                                for a in integ.actions]
+                    "actions": [
+                        {"id": a.id, "input_fields": [f.name for f in a.input_schema]}
+                        for a in integ.actions
+                    ]
                 }
 
         enriched_raw = await _kickoff_task(
@@ -1581,7 +1971,7 @@ async def run_pipeline(session: PipelineSession) -> None:
                 "stub_skeletons": json.dumps(skeletons),
                 "entity_schemas": _compact(session.db_schema or {}),
                 "user_prompt": session.prompt[:300],
-            }
+            },
         )
 
         # Normalise LLM output — may return list or dict wrapper
@@ -1605,11 +1995,20 @@ async def run_pipeline(session: PipelineSession) -> None:
             iid = stub_data.get("integration_id", "")
             aid = stub_data.get("action_id", "")
             if not get_action(iid, aid):
-                logger.warning("[session:%s] Stub dropped — bad registry ref %s.%s", session.session_id, iid, aid)
+                logger.warning(
+                    "[session:%s] Stub dropped — bad registry ref %s.%s",
+                    session.session_id,
+                    iid,
+                    aid,
+                )
                 continue
             trigger_data = stub_data.get("trigger", {})
             if not isinstance(trigger_data, dict):
-                trigger_data = {"entity": "Record", "event": "created", "condition": None}
+                trigger_data = {
+                    "entity": "Record",
+                    "event": "created",
+                    "condition": None,
+                }
             try:
                 stub = WorkflowStub(
                     name=stub_data.get("name", f"{iid} workflow"),
@@ -1622,16 +2021,19 @@ async def run_pipeline(session: PipelineSession) -> None:
                 )
                 validated.append(stub)
             except Exception as e:
-                logger.warning("[session:%s] Stub Pydantic error: %s", session.session_id, e)
+                logger.warning(
+                    "[session:%s] Stub Pydantic error: %s", session.session_id, e
+                )
 
-        logger.info("[session:%s] Workflow stubs: %d valid, %d dropped.",
-                    session.session_id, len(validated), len(enriched_list) - len(validated))
+        logger.info(
+            "[session:%s] Workflow stubs: %d valid, %d dropped.",
+            session.session_id,
+            len(validated),
+            len(enriched_list) - len(validated),
+        )
         return validated
 
-    _wf_result = await _run_stage(
-        session, "workflow_stubs",
-        _stage_workflow_stubs()
-    )
+    _wf_result = await _run_stage(session, "workflow_stubs", _stage_workflow_stubs())
     session.workflow_stubs = _wf_result if isinstance(_wf_result, list) else []
 
     # ── Build integration hooks deterministically from validated stubs ────────
@@ -1642,13 +2044,21 @@ async def run_pipeline(session: PipelineSession) -> None:
         Deterministic: reads auth_type and required_inputs directly from REGISTRY.
         Deduplicates by hook_id = hook_{integration_id}_{action_id}.
         """
-        from compiler.integrations.registry import get_integration, get_action
+        from compiler.integrations.registry import get_action, get_integration
         from compiler.schemas.contracts import IntegrationHook
 
         seen: dict[str, IntegrationHook] = {}
         for stub in stubs:
-            iid = stub.integration_id if hasattr(stub, "integration_id") else stub.get("integration_id", "")
-            aid = stub.action_id if hasattr(stub, "action_id") else stub.get("action_id", "")
+            iid = (
+                stub.integration_id
+                if hasattr(stub, "integration_id")
+                else stub.get("integration_id", "")
+            )
+            aid = (
+                stub.action_id
+                if hasattr(stub, "action_id")
+                else stub.get("action_id", "")
+            )
             hook_id = f"hook_{iid}_{aid}"
             if hook_id in seen:
                 continue  # already built this hook
@@ -1666,7 +2076,9 @@ async def run_pipeline(session: PipelineSession) -> None:
                     required_inputs=[],
                     is_stub=True,
                     validation_status="invalid",
-                    validation_errors=[f"integration_id={iid!r} or action_id={aid!r} not found in registry"]
+                    validation_errors=[
+                        f"integration_id={iid!r} or action_id={aid!r} not found in registry"
+                    ],
                 )
                 continue
 
@@ -1681,11 +2093,13 @@ async def run_pipeline(session: PipelineSession) -> None:
                 required_inputs=required_inputs,
                 is_stub=integration.is_stub,
                 validation_status=v_status,
-                validation_errors=[]
+                validation_errors=[],
             )
             logger.info(
                 "[session:%s] IntegrationHook built: %s (status=%s)",
-                session.session_id, hook_id, v_status
+                session.session_id,
+                hook_id,
+                v_status,
             )
 
         return list(seen.values())
@@ -1701,11 +2115,10 @@ async def run_pipeline(session: PipelineSession) -> None:
     session.integration_hooks = _build_integration_hooks(session.workflow_stubs)
     logger.info(
         "[session:%s] Integration hooks built: %d hooks for %d stubs.",
-        session.session_id, len(session.integration_hooks), len(session.workflow_stubs)
+        session.session_id,
+        len(session.integration_hooks),
+        len(session.workflow_stubs),
     )
-
-
-
 
     # STAGE 4 + 5 — Validation + Repair loop
     # ─────────────────────────────────────────────────────────────────────────
@@ -1717,15 +2130,19 @@ async def run_pipeline(session: PipelineSession) -> None:
         # Use _outline() (ultra-compact) rather than _compact() for all_schemas.
         # Validation only needs structural info (table names, endpoint paths, roles) —
         # not full column/field details — to detect cross-layer mismatches.
-        all_schemas_json = _outline({
-            "db_schema": session.db_schema,
-            "api_schema": session.api_schema,
-            "ui_schema": session.ui_schema,
-            "auth_schema": session.auth_schema,
-        })
+        all_schemas_json = _outline(
+            {
+                "db_schema": session.db_schema,
+                "api_schema": session.api_schema,
+                "ui_schema": session.ui_schema,
+                "auth_schema": session.auth_schema,
+            }
+        )
         logger.info(
             "[session:%s] Validation attempt %d/%d.",
-            session.session_id, attempt, MAX_REPAIR_LOOPS,
+            session.session_id,
+            attempt,
+            MAX_REPAIR_LOOPS,
         )
 
         async def _stage_validate() -> dict:
@@ -1741,26 +2158,31 @@ async def run_pipeline(session: PipelineSession) -> None:
             error_count = len(result.get("errors", []))
             logger.info(
                 "[session:%s] Validation result: is_valid=%s errors=%d warnings=%d",
-                session.session_id, is_valid, error_count,
+                session.session_id,
+                is_valid,
+                error_count,
                 len(result.get("warnings", [])),
             )
             return result
 
-        validation = await _run_stage(
-            session, "validation",
-            _stage_validate()
-        )
+        validation = await _run_stage(session, "validation", _stage_validate())
 
         # Derive validity from errors array — LLM's is_valid flag is unreliable.
         # Also treat empty {} as a parse failure (validator didn't return a proper report).
         errors = validation.get("errors", [])
-        is_empty_report = not validation or (not errors and not validation.get("warnings") and not validation.get("validated_at"))
+        is_empty_report = not validation or (
+            not errors
+            and not validation.get("warnings")
+            and not validation.get("validated_at")
+        )
         effective_is_valid = len(errors) == 0 and not is_empty_report
 
         # Track the best validation report — prefer a real report with content over {}.
         # This ensures session.validation_report is always the most informative result
         # even if a later parse attempt returns empty.
-        if not is_empty_report and len(errors) + len(validation.get("warnings", [])) > len(
+        if not is_empty_report and len(errors) + len(
+            validation.get("warnings", [])
+        ) > len(
             _best_validation.get("errors", []) + _best_validation.get("warnings", [])
         ):
             _best_validation = validation
@@ -1773,29 +2195,41 @@ async def run_pipeline(session: PipelineSession) -> None:
         if is_empty_report:
             logger.warning(
                 "[session:%s] Validation returned empty report on attempt %d — treating as failed parse, triggering repair.",
-                session.session_id, attempt,
+                session.session_id,
+                attempt,
             )
         elif effective_is_valid:
             logger.info(
                 "[session:%s] Schemas valid after attempt %d (0 errors).",
-                session.session_id, attempt,
+                session.session_id,
+                attempt,
             )
             break
 
         errors = validation.get("errors", [])
         logger.warning(
             "[session:%s] Validation FAILED. %d errors. Triggering repair (attempt %d).",
-            session.session_id, len(errors), attempt,
+            session.session_id,
+            len(errors),
+            attempt,
         )
 
-        await _emit(session, "stage_update", {
-            "stage": "validation",
-            "status": "repair_triggered",
-            "model": session.stage_models.get("validation", model_for_stage("validation")[0]),
-            "latency_ms": session.stage_latencies.get("validation", 0),
-            "output_summary": f"{len(errors)} errors found",
-            "conflicts": [e.get("description", "") for e in validation.get("conflicts", [])],
-        })
+        await _emit(
+            session,
+            "stage_update",
+            {
+                "stage": "validation",
+                "status": "repair_triggered",
+                "model": session.stage_models.get(
+                    "validation", model_for_stage("validation")[0]
+                ),
+                "latency_ms": session.stage_latencies.get("validation", 0),
+                "output_summary": f"{len(errors)} errors found",
+                "conflicts": [
+                    e.get("description", "") for e in validation.get("conflicts", [])
+                ],
+            },
+        )
 
         # If same errors persist after 2 attempts, escalate to HITL
         # Only escalate on real errors — not on empty reports (those are parse failures).
@@ -1803,7 +2237,9 @@ async def run_pipeline(session: PipelineSession) -> None:
             unresolved = [e.get("description", str(e)) for e in errors[:3]]
             logger.warning(
                 "[session:%s] Repair attempt %d — escalating to HITL. unresolved=%s",
-                session.session_id, attempt, unresolved,
+                session.session_id,
+                attempt,
+                unresolved,
             )
             await _wait_for_hitl(
                 session,
@@ -1825,12 +2261,14 @@ async def run_pipeline(session: PipelineSession) -> None:
                     # Repair needs _compact (field-level detail) not _outline
                     # (name-only) because the repair agent must patch specific
                     # column constraints, endpoint validation rules, etc.
-                    "all_schemas": _compact({
-                        "db_schema": session.db_schema,
-                        "api_schema": session.api_schema,
-                        "ui_schema": session.ui_schema,
-                        "auth_schema": session.auth_schema,
-                    }),
+                    "all_schemas": _compact(
+                        {
+                            "db_schema": session.db_schema,
+                            "api_schema": session.api_schema,
+                            "ui_schema": session.ui_schema,
+                            "auth_schema": session.auth_schema,
+                        }
+                    ),
                     "repair_attempt_number": attempt,
                     "user_prompt": session.prompt,
                 },
@@ -1840,33 +2278,56 @@ async def run_pipeline(session: PipelineSession) -> None:
 
             # --- Feature F: classify repair strategy and log outcome ---
             # FIELD repair: if errors are field-type, attempt narrow re-prompt
-            _field_errors = [e for e in (session.validation_report or {}).get("errors", [])
-                             if isinstance(e, dict) and "field" in e.get("layer", "").lower() + e.get("description", "").lower()]
+            _field_errors = [
+                e
+                for e in (session.validation_report or {}).get("errors", [])
+                if isinstance(e, dict)
+                and "field"
+                in e.get("layer", "").lower() + e.get("description", "").lower()
+            ]
             if _field_errors and attempt == 1:
-                for _fe in _field_errors[:2]:  # re-prompt up to 2 field errors in isolation
+                for _fe in _field_errors[
+                    :2
+                ]:  # re-prompt up to 2 field errors in isolation
                     _field_desc = _fe.get("description", "")
                     _field_name = _fe.get("field", "unknown_field")
-                    logger.info("[session:%s] FIELD repair: re-prompting field=%s", session.session_id, _field_name)
+                    logger.info(
+                        "[session:%s] FIELD repair: re-prompting field=%s",
+                        session.session_id,
+                        _field_name,
+                    )
                     try:
                         _narrow_result = await _kickoff_task(
                             "task_repair_schemas",
                             {
                                 "validation_report": f'{{"errors": [{json.dumps(_fe)}]}}',
-                                "all_schemas": _compact({
-                                    "db_schema": session.db_schema,
-                                    "api_schema": session.api_schema,
-                                }),
+                                "all_schemas": _compact(
+                                    {
+                                        "db_schema": session.db_schema,
+                                        "api_schema": session.api_schema,
+                                    }
+                                ),
                                 "repair_attempt_number": attempt,
                                 "user_prompt": f"Fix only this field error: {_field_desc}",
-                            }
+                            },
                         )
                         _narrow_updated = _narrow_result.get("updated_schemas", {})
-                        for _k in {"db_schema", "api_schema"} & set(_narrow_updated.keys()):
+                        for _k in {"db_schema", "api_schema"} & set(
+                            _narrow_updated.keys()
+                        ):
                             if isinstance(_narrow_updated[_k], dict):
                                 setattr(session, _k, _narrow_updated[_k])
-                                logger.info("[session:%s] FIELD repair applied to %s", session.session_id, _k)
+                                logger.info(
+                                    "[session:%s] FIELD repair applied to %s",
+                                    session.session_id,
+                                    _k,
+                                )
                     except Exception as _fe_exc:
-                        logger.warning("[session:%s] FIELD narrow re-prompt failed: %s", session.session_id, _fe_exc)
+                        logger.warning(
+                            "[session:%s] FIELD narrow re-prompt failed: %s",
+                            session.session_id,
+                            _fe_exc,
+                        )
             errors_before = len((session.validation_report or {}).get("errors", []))
             strategy = _classify_repair_strategy(
                 errors=(session.validation_report or {}).get("errors", []),
@@ -1876,9 +2337,9 @@ async def run_pipeline(session: PipelineSession) -> None:
             unresolved = result.get("unresolved_errors", [])
             errors_after = len(unresolved)
             outcome = (
-                "escalated" if strategy == "ESCALATED"
-                else "repaired" if errors_after < errors_before
-                else "failed"
+                "escalated"
+                if strategy == "ESCALATED"
+                else "repaired" if errors_after < errors_before else "failed"
             )
             log_entry = {
                 "attempt_number": attempt,
@@ -1896,7 +2357,12 @@ async def run_pipeline(session: PipelineSession) -> None:
             session.repair_log.append(log_entry)
             logger.info(
                 "[session:%s] Repair attempt=%d strategy=%s outcome=%s errors=%d->%d",
-                session.session_id, attempt, strategy, outcome, errors_before, errors_after,
+                session.session_id,
+                attempt,
+                strategy,
+                outcome,
+                errors_before,
+                errors_after,
             )
             logger.info(
                 "[session:%s] Repair complete. repairs=%d unresolved=%d",
@@ -1911,7 +2377,8 @@ async def run_pipeline(session: PipelineSession) -> None:
             if not isinstance(updated, dict):
                 logger.warning(
                     "[session:%s] Repair returned non-dict updated_schemas (type=%s). Ignoring.",
-                    session.session_id, type(updated).__name__,
+                    session.session_id,
+                    type(updated).__name__,
                 )
                 updated = {}
             elif set(updated.keys()) == {"schema"}:
@@ -1922,7 +2389,12 @@ async def run_pipeline(session: PipelineSession) -> None:
                 )
                 updated = {}
 
-            for key in {"db_schema", "api_schema", "ui_schema", "auth_schema"} & updated.keys():
+            for key in {
+                "db_schema",
+                "api_schema",
+                "ui_schema",
+                "auth_schema",
+            } & updated.keys():
                 value = updated[key]
                 if isinstance(value, dict):
                     # Guard against repair truncating schemas — only accept the
@@ -1931,8 +2403,12 @@ async def run_pipeline(session: PipelineSession) -> None:
                     # agent from replacing a 12-endpoint api_schema with 4 endpoints.
                     current = getattr(session, key, {}) or {}
                     # Count representative items per schema type
-                    count_key = {"db_schema": "tables", "api_schema": "endpoints",
-                                 "ui_schema": "pages", "auth_schema": "roles"}.get(key)
+                    count_key = {
+                        "db_schema": "tables",
+                        "api_schema": "endpoints",
+                        "ui_schema": "pages",
+                        "auth_schema": "roles",
+                    }.get(key)
                     if count_key:
                         current_count = len(current.get(count_key, []))
                         repair_count = len(value.get(count_key, []))
@@ -1940,32 +2416,38 @@ async def run_pipeline(session: PipelineSession) -> None:
                             logger.warning(
                                 "[session:%s] Repair returned truncated %s "
                                 "(%d %s vs current %d) — skipping merge to preserve original.",
-                                session.session_id, key, repair_count, count_key, current_count,
+                                session.session_id,
+                                key,
+                                repair_count,
+                                count_key,
+                                current_count,
                             )
                             continue
                     setattr(session, key, value)
-                    logger.debug("[session:%s] %s updated by repair.", session.session_id, key)
+                    logger.debug(
+                        "[session:%s] %s updated by repair.", session.session_id, key
+                    )
                 else:
                     logger.warning(
                         "[session:%s] Repair returned non-dict for %s (type=%s). Skipping.",
-                        session.session_id, key, type(value).__name__,
+                        session.session_id,
+                        key,
+                        type(value).__name__,
                     )
             # Rebuild all_schemas_json for next validation pass
             return result
 
-
-        await _run_stage(
-            session, "repair",
-            _stage_repair()
-        )
+        await _run_stage(session, "repair", _stage_repair())
 
         # Rebuild outline for next validation pass
-        all_schemas_json = _outline({
-            "db_schema": session.db_schema,
-            "api_schema": session.api_schema,
-            "ui_schema": session.ui_schema,
-            "auth_schema": session.auth_schema,
-        })
+        all_schemas_json = _outline(
+            {
+                "db_schema": session.db_schema,
+                "api_schema": session.api_schema,
+                "ui_schema": session.ui_schema,
+                "auth_schema": session.auth_schema,
+            }
+        )
 
     # ─────────────────────────────────────────────────────────────────────────
     # STAGE 6 — Runtime Validation
@@ -1974,12 +2456,14 @@ async def run_pipeline(session: PipelineSession) -> None:
         result = await _kickoff_task(
             "task_validate_runtime",
             {
-                "all_schemas": _outline({
-                    "db_schema": session.db_schema,
-                    "api_schema": session.api_schema,
-                    "ui_schema": session.ui_schema,
-                    "auth_schema": session.auth_schema,
-                }),
+                "all_schemas": _outline(
+                    {
+                        "db_schema": session.db_schema,
+                        "api_schema": session.api_schema,
+                        "ui_schema": session.ui_schema,
+                        "auth_schema": session.auth_schema,
+                    }
+                ),
                 "validation_report": _compact(session.validation_report),
                 "user_prompt": session.prompt,
             },
@@ -1988,16 +2472,14 @@ async def run_pipeline(session: PipelineSession) -> None:
         viable = result.get("execution_viable", False)
         logger.info(
             "[session:%s] Runtime validation: viable=%s flows=%d blocking=%d",
-            session.session_id, viable,
+            session.session_id,
+            viable,
             len(result.get("simulated_flows", [])),
             len(result.get("blocking_issues", [])),
         )
         return result
 
-    await _run_stage(
-        session, "runtime_validation",
-        _stage_runtime()
-    )
+    await _run_stage(session, "runtime_validation", _stage_runtime())
 
     # ─────────────────────────────────────────────────────────────────────────
     # STAGE 7 — Progress Logging + Mermaid generation
@@ -2012,8 +2494,16 @@ async def run_pipeline(session: PipelineSession) -> None:
                 "hitl_count": session.hitl_count,
                 "user_prompt": session.prompt[:200],
                 "session_id": session.session_id,
-                "db_outline": _outline(session.db_schema) if session.db_schema else "No DB schema generated",
-                "api_outline": _outline(session.api_schema) if session.api_schema else "No API schema generated",
+                "db_outline": (
+                    _outline(session.db_schema)
+                    if session.db_schema
+                    else "No DB schema generated"
+                ),
+                "api_outline": (
+                    _outline(session.api_schema)
+                    if session.api_schema
+                    else "No API schema generated"
+                ),
             },
         )
         # Sanitize Mermaid diagrams before storing — fix LLM syntax mistakes
@@ -2032,15 +2522,18 @@ async def run_pipeline(session: PipelineSession) -> None:
         )
         # Stream log entries as SSE
         for entry in result.get("log_entries", []):
-            await _emit(session, "log_update", {
-                "content": json.dumps(entry) if isinstance(entry, dict) else str(entry),
-            })
+            await _emit(
+                session,
+                "log_update",
+                {
+                    "content": (
+                        json.dumps(entry) if isinstance(entry, dict) else str(entry)
+                    ),
+                },
+            )
         return result
 
-    await _run_stage(
-        session, "logging",
-        _stage_logging()
-    )
+    await _run_stage(session, "logging", _stage_logging())
 
     # ─────────────────────────────────────────────────────────────────────────
     # ─────────────────────────────────────────────────────────────────────────
@@ -2048,58 +2541,127 @@ async def run_pipeline(session: PipelineSession) -> None:
     # ─────────────────────────────────────────────────────────────────────────
     def _build_app_spec() -> Optional[dict]:
         from compiler.schemas.contracts import (
-            AppSpec, AppSpecMeta, AppSpecEntity, AppSpecPage,
-            AppSpecEndpoint, AppSpecAuthRules
+            AppSpec,
+            AppSpecAuthRules,
+            AppSpecEndpoint,
+            AppSpecEntity,
+            AppSpecMeta,
+            AppSpecPage,
         )
+
         intent = session.intent or {}
-        app_type = intent.get("app_type", "custom") if isinstance(intent, dict) else getattr(intent, "app_type", "custom")
-        features = intent.get("features", []) if isinstance(intent, dict) else getattr(intent, "features", [])
-        assumptions = intent.get("assumptions", []) if isinstance(intent, dict) else getattr(intent, "assumptions", [])
+        app_type = (
+            intent.get("app_type", "custom")
+            if isinstance(intent, dict)
+            else getattr(intent, "app_type", "custom")
+        )
+        features = (
+            intent.get("features", [])
+            if isinstance(intent, dict)
+            else getattr(intent, "features", [])
+        )
+        assumptions = (
+            intent.get("assumptions", [])
+            if isinstance(intent, dict)
+            else getattr(intent, "assumptions", [])
+        )
         meta = AppSpecMeta(
-            app_name=(intent.get("app_name", "") if isinstance(intent, dict) else getattr(intent, "app_name", "")) or str(app_type).replace("_", " ").title(),
+            app_name=(
+                intent.get("app_name", "")
+                if isinstance(intent, dict)
+                else getattr(intent, "app_name", "")
+            )
+            or str(app_type).replace("_", " ").title(),
             app_type=str(app_type),
             description=session.prompt[:200],
             features=features if isinstance(features, list) else [],
             assumptions=assumptions if isinstance(assumptions, list) else [],
         )
         arch = session.architecture or {}
-        arch_entities_raw = arch.get("entities", []) if isinstance(arch, dict) else getattr(arch, "entities", [])
+        arch_entities_raw = (
+            arch.get("entities", [])
+            if isinstance(arch, dict)
+            else getattr(arch, "entities", [])
+        )
         arch_entity_names = []
         for e in arch_entities_raw:
             n = e.get("name", "") if isinstance(e, dict) else getattr(e, "name", "")
             if n:
                 arch_entity_names.append(n)
         db = session.db_schema or {}
-        tables_raw = db.get("tables", []) if isinstance(db, dict) else getattr(db, "tables", [])
+        tables_raw = (
+            db.get("tables", []) if isinstance(db, dict) else getattr(db, "tables", [])
+        )
+
         def _tbl(entity_name):
             el = entity_name.lower().replace(" ", "_")
             for t in tables_raw:
-                tn = t.get("name", "") if isinstance(t, dict) else getattr(t, "name", "")
-                if tn.lower() in (el, el + "s", el.rstrip("s")) or el in tn.lower() or tn.lower() in el:
+                tn = (
+                    t.get("name", "") if isinstance(t, dict) else getattr(t, "name", "")
+                )
+                if (
+                    tn.lower() in (el, el + "s", el.rstrip("s"))
+                    or el in tn.lower()
+                    or tn.lower() in el
+                ):
                     return t
             return {}
+
         entities = []
         for name in arch_entity_names:
             tbl = _tbl(name)
-            tname = tbl.get("name", name.lower() + "s") if isinstance(tbl, dict) else getattr(tbl, "name", name.lower() + "s")
-            cols = tbl.get("columns", []) if isinstance(tbl, dict) else getattr(tbl, "columns", [])
-            fields = [c.get("name", "") if isinstance(c, dict) else getattr(c, "name", "") for c in cols]
+            tname = (
+                tbl.get("name", name.lower() + "s")
+                if isinstance(tbl, dict)
+                else getattr(tbl, "name", name.lower() + "s")
+            )
+            cols = (
+                tbl.get("columns", [])
+                if isinstance(tbl, dict)
+                else getattr(tbl, "columns", [])
+            )
+            fields = [
+                c.get("name", "") if isinstance(c, dict) else getattr(c, "name", "")
+                for c in cols
+            ]
             fields = [f for f in fields if f]
-            fks = tbl.get("foreign_keys", []) if isinstance(tbl, dict) else getattr(tbl, "foreign_keys", [])
+            fks = (
+                tbl.get("foreign_keys", [])
+                if isinstance(tbl, dict)
+                else getattr(tbl, "foreign_keys", [])
+            )
             rels = []
             for fk in fks:
-                col = fk.get("column", "") if isinstance(fk, dict) else getattr(fk, "column", "")
-                ref = fk.get("references_table", "") if isinstance(fk, dict) else getattr(fk, "references_table", "")
+                col = (
+                    fk.get("column", "")
+                    if isinstance(fk, dict)
+                    else getattr(fk, "column", "")
+                )
+                ref = (
+                    fk.get("references_table", "")
+                    if isinstance(fk, dict)
+                    else getattr(fk, "references_table", "")
+                )
                 if col and ref:
                     rels.append(f"belongs to {ref} via {col}")
-            entities.append(AppSpecEntity(name=name, table_name=tname, fields=fields, relations=rels))
+            entities.append(
+                AppSpecEntity(
+                    name=name, table_name=tname, fields=fields, relations=rels
+                )
+            )
         ui = session.ui_schema or {}
-        pages_raw = ui.get("pages", []) if isinstance(ui, dict) else getattr(ui, "pages", [])
+        pages_raw = (
+            ui.get("pages", []) if isinstance(ui, dict) else getattr(ui, "pages", [])
+        )
         pages = []
         for p in pages_raw:
             pth = p.get("path", "") if isinstance(p, dict) else getattr(p, "path", "")
             ttl = p.get("title", "") if isinstance(p, dict) else getattr(p, "title", "")
-            role = p.get("role_required") if isinstance(p, dict) else getattr(p, "role_required", None)
+            role = (
+                p.get("role_required")
+                if isinstance(p, dict)
+                else getattr(p, "role_required", None)
+            )
             bound = None
             pl = pth.lower().replace("-", "_").replace("/", "_")
             for en in arch_entity_names:
@@ -2110,54 +2672,121 @@ async def run_pipeline(session: PipelineSession) -> None:
             layout = "list"
             if any(kw in pth.lower() for kw in [":id", "/detail", "/view", "/edit"]):
                 layout = "detail"
-            elif any(kw in pth.lower() for kw in ["/dashboard", "/analytics", "/report", "/overview"]):
+            elif any(
+                kw in pth.lower()
+                for kw in ["/dashboard", "/analytics", "/report", "/overview"]
+            ):
                 layout = "dashboard"
-            elif any(kw in pth.lower() for kw in ["/settings", "/profile", "/config", "/preferences"]):
+            elif any(
+                kw in pth.lower()
+                for kw in ["/settings", "/profile", "/config", "/preferences"]
+            ):
                 layout = "settings"
-            pages.append(AppSpecPage(path=pth, title=ttl, role_required=role, bound_entity=bound, layout=layout))
+            pages.append(
+                AppSpecPage(
+                    path=pth,
+                    title=ttl,
+                    role_required=role,
+                    bound_entity=bound,
+                    layout=layout,
+                )
+            )
         api = session.api_schema or {}
-        eps_raw = api.get("endpoints", []) if isinstance(api, dict) else getattr(api, "endpoints", [])
+        eps_raw = (
+            api.get("endpoints", [])
+            if isinstance(api, dict)
+            else getattr(api, "endpoints", [])
+        )
         api_endpoints = []
         for ep in eps_raw:
-            m = ep.get("method", "GET") if isinstance(ep, dict) else getattr(ep, "method", "GET")
-            pth = ep.get("path", "") if isinstance(ep, dict) else getattr(ep, "path", "")
-            ar = ep.get("auth_required", True) if isinstance(ep, dict) else getattr(ep, "auth_required", True)
-            rr = ep.get("required_role") if isinstance(ep, dict) else getattr(ep, "required_role", None)
+            m = (
+                ep.get("method", "GET")
+                if isinstance(ep, dict)
+                else getattr(ep, "method", "GET")
+            )
+            pth = (
+                ep.get("path", "") if isinstance(ep, dict) else getattr(ep, "path", "")
+            )
+            ar = (
+                ep.get("auth_required", True)
+                if isinstance(ep, dict)
+                else getattr(ep, "auth_required", True)
+            )
+            rr = (
+                ep.get("required_role")
+                if isinstance(ep, dict)
+                else getattr(ep, "required_role", None)
+            )
             if pth:
                 # Derive handler description from method + path
-                handler_desc = ep.get("description", "") if isinstance(ep, dict) else getattr(ep, "description", "")
+                handler_desc = (
+                    ep.get("description", "")
+                    if isinstance(ep, dict)
+                    else getattr(ep, "description", "")
+                )
                 if not handler_desc:
                     handler_desc = f"{m} {pth}"
                 # Rate limit flag: POST/PUT endpoints or paths with /upload /export
-                rate_limit = any(kw in str(pth).lower() for kw in ["/upload", "/export", "/bulk", "/import"])
-                if str(m).upper() in ("POST", "PUT", "PATCH") and "admin" in str(rr or "").lower():
+                rate_limit = any(
+                    kw in str(pth).lower()
+                    for kw in ["/upload", "/export", "/bulk", "/import"]
+                )
+                if (
+                    str(m).upper() in ("POST", "PUT", "PATCH")
+                    and "admin" in str(rr or "").lower()
+                ):
                     rate_limit = True
-                api_endpoints.append(AppSpecEndpoint(
-                    method=str(m), path=str(pth), auth_required=bool(ar),
-                    required_role=rr, handler_description=handler_desc,
-                    rate_limit_flag=rate_limit
-                ))
+                api_endpoints.append(
+                    AppSpecEndpoint(
+                        method=str(m),
+                        path=str(pth),
+                        auth_required=bool(ar),
+                        required_role=rr,
+                        handler_description=handler_desc,
+                        rate_limit_flag=rate_limit,
+                    )
+                )
         auth = session.auth_schema or {}
-        strat = auth.get("auth_strategy", "jwt") if isinstance(auth, dict) else getattr(auth, "auth_strategy", "jwt")
-        roles = auth.get("roles", []) if isinstance(auth, dict) else getattr(auth, "roles", [])
-        auth_rules = AppSpecAuthRules(auth_strategy=str(strat), roles=roles if isinstance(roles, list) else [])
+        strat = (
+            auth.get("auth_strategy", "jwt")
+            if isinstance(auth, dict)
+            else getattr(auth, "auth_strategy", "jwt")
+        )
+        roles = (
+            auth.get("roles", [])
+            if isinstance(auth, dict)
+            else getattr(auth, "roles", [])
+        )
+        auth_rules = AppSpecAuthRules(
+            auth_strategy=str(strat), roles=roles if isinstance(roles, list) else []
+        )
         try:
             spec = AppSpec(
-                meta=meta, entities=entities, pages=pages,
-                api_endpoints=api_endpoints, auth_rules=auth_rules,
+                meta=meta,
+                entities=entities,
+                pages=pages,
+                api_endpoints=api_endpoints,
+                auth_rules=auth_rules,
                 integration_hooks=session.integration_hooks or [],
                 workflow_stubs=session.workflow_stubs or [],
             )
-            logger.info("[session:%s] AppSpec: %d entities, %d pages, %d endpoints, %d hooks, %d stubs.",
-                session.session_id, len(entities), len(pages), len(api_endpoints),
-                len(session.integration_hooks or []), len(session.workflow_stubs or []))
+            logger.info(
+                "[session:%s] AppSpec: %d entities, %d pages, %d endpoints, %d hooks, %d stubs.",
+                session.session_id,
+                len(entities),
+                len(pages),
+                len(api_endpoints),
+                len(session.integration_hooks or []),
+                len(session.workflow_stubs or []),
+            )
             return spec.model_dump()
         except Exception as e:
-            logger.error("[session:%s] AppSpec assembly error: %s", session.session_id, e)
+            logger.error(
+                "[session:%s] AppSpec assembly error: %s", session.session_id, e
+            )
             return None
 
     session.app_spec = _build_app_spec()
-
 
     # STAGE 8 — pipeline_complete SSE event
     # ─────────────────────────────────────────────────────────────────────────
@@ -2165,9 +2794,13 @@ async def run_pipeline(session: PipelineSession) -> None:
     log_out = session.log_output or {}
 
     mermaid = {
-        "pipeline_flow": _sanitize_mermaid(log_out.get("mermaid_pipeline", ""), "flowchart"),
-        "er_diagram":    _sanitize_mermaid(log_out.get("mermaid_er",       ""), "er"),
-        "api_sequence":  _sanitize_mermaid(log_out.get("mermaid_sequence",  ""), "sequence"),
+        "pipeline_flow": _sanitize_mermaid(
+            log_out.get("mermaid_pipeline", ""), "flowchart"
+        ),
+        "er_diagram": _sanitize_mermaid(log_out.get("mermaid_er", ""), "er"),
+        "api_sequence": _sanitize_mermaid(
+            log_out.get("mermaid_sequence", ""), "sequence"
+        ),
     }
 
     final_schema = {
@@ -2182,40 +2815,69 @@ async def run_pipeline(session: PipelineSession) -> None:
         "validation_report": session.validation_report,
         "repair_report": session.repair_report,
         "runtime_report": session.runtime_report,
-        "workflow_stubs": [s.model_dump() if hasattr(s, "model_dump") else s for s in (session.workflow_stubs or [])],
-        "integration_hooks": [h.model_dump() if hasattr(h, "model_dump") else h for h in (session.integration_hooks or [])],
+        "workflow_stubs": [
+            s.model_dump() if hasattr(s, "model_dump") else s
+            for s in (session.workflow_stubs or [])
+        ],
+        "integration_hooks": [
+            h.model_dump() if hasattr(h, "model_dump") else h
+            for h in (session.integration_hooks or [])
+        ],
         "app_spec": session.app_spec,
         "repair_log": getattr(session, "repair_log", []),
     }
 
     from compiler.schemas.contracts import FinalOutput
+
     try:
         FinalOutput.model_validate(final_schema)
-        logger.info("[session:%s] FinalOutput Pydantic validation passed.", session.session_id)
+        logger.info(
+            "[session:%s] FinalOutput Pydantic validation passed.", session.session_id
+        )
     except Exception as e:
-        logger.warning("[session:%s] FinalOutput Pydantic validation failed (non-blocking): %s", session.session_id, e)
+        logger.warning(
+            "[session:%s] FinalOutput Pydantic validation failed (non-blocking): %s",
+            session.session_id,
+            e,
+        )
 
     # Emit generation_complete as alias (assignment requirement)
-    await _emit(session, "generation_complete", {
-        "total_latency_ms": total_ms,
-        "session_id": session.session_id,
-    })
-    await _emit(session, "pipeline_complete", {
-        "total_latency_ms": total_ms,
-        "total_tokens": session.total_tokens,
-        "repair_count": session.repair_count,
-        "hitl_count": session.hitl_count,
-        "final_schema": final_schema,
-        "mermaid_diagrams": mermaid,
-        "assumptions": session.intent.get("assumptions", []) if session.intent else [],
-        "conflicts": session.validation_report.get("conflicts", []) if session.validation_report else [],
-    })
+    await _emit(
+        session,
+        "generation_complete",
+        {
+            "total_latency_ms": total_ms,
+            "session_id": session.session_id,
+        },
+    )
+    await _emit(
+        session,
+        "pipeline_complete",
+        {
+            "total_latency_ms": total_ms,
+            "total_tokens": session.total_tokens,
+            "repair_count": session.repair_count,
+            "hitl_count": session.hitl_count,
+            "final_schema": final_schema,
+            "mermaid_diagrams": mermaid,
+            "assumptions": (
+                session.intent.get("assumptions", []) if session.intent else []
+            ),
+            "conflicts": (
+                session.validation_report.get("conflicts", [])
+                if session.validation_report
+                else []
+            ),
+        },
+    )
 
     # Signal SSE stream to close
     await session.sse_queue.put(None)
 
     logger.info(
         "[session:%s] Pipeline COMPLETE. total_ms=%d repairs=%d hitl=%d",
-        session.session_id, total_ms, session.repair_count,
+        session.session_id,
+        total_ms,
+        session.repair_count,
         session.hitl_count,
     )

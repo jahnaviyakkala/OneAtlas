@@ -11,17 +11,17 @@ from typing import Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
-
 # ---------------------------------------------------------------------------
 # Intent Schema
 # ---------------------------------------------------------------------------
+
 
 class IntentSchema(BaseModel):
     """Output of the intent extraction stage."""
 
     app_name: str = Field(
         default="",
-        description="Application name extracted from the prompt, e.g. Real Estate CRM."
+        description="Application name extracted from the prompt, e.g. Real Estate CRM.",
     )
     app_type: str = Field(
         description="Application type enum: crm | project_management | ecommerce | hr_tool | inventory | content_platform | analytics | custom."
@@ -72,6 +72,7 @@ class IntentSchema(BaseModel):
 # ---------------------------------------------------------------------------
 # Architecture Schema
 # ---------------------------------------------------------------------------
+
 
 class EntitySchema(BaseModel):
     """A domain entity in the architecture."""
@@ -145,11 +146,14 @@ class ArchitectureSchema(BaseModel):
 # DB Schema
 # ---------------------------------------------------------------------------
 
+
 class ColumnSchema(BaseModel):
     """A single database column."""
 
     name: str = Field(description="Column name.")
-    data_type: str = Field(description="SQL data type, e.g. 'UUID', 'VARCHAR(255)', 'BOOLEAN'.")
+    data_type: str = Field(
+        description="SQL data type, e.g. 'UUID', 'VARCHAR(255)', 'BOOLEAN'."
+    )
     nullable: bool = Field(description="Whether the column allows NULL values.")
     default_value: Optional[str] = Field(
         default=None,
@@ -220,6 +224,7 @@ class DBSchema(BaseModel):
 # API Schema
 # ---------------------------------------------------------------------------
 
+
 class RequestSchema(BaseModel):
     """Request body definition for an API endpoint."""
 
@@ -285,11 +290,14 @@ class APISchema(BaseModel):
 # UI Schema
 # ---------------------------------------------------------------------------
 
+
 class FormFieldSchema(BaseModel):
     """A single form field in the UI."""
 
     name: str = Field(description="Field name.")
-    field_type: str = Field(description="Input type: 'text', 'email', 'select', 'checkbox', etc.")
+    field_type: str = Field(
+        description="Input type: 'text', 'email', 'select', 'checkbox', etc."
+    )
     label: str = Field(description="Display label.")
     api_field: str = Field(description="Corresponding API request body field name.")
     required: bool = Field(default=False, description="Whether this field is required.")
@@ -308,7 +316,9 @@ class FormSchema(BaseModel):
         description="Form fields.",
     )
     submit_endpoint: str = Field(description="API endpoint path this form submits to.")
-    submit_method: str = Field(default="POST", description="HTTP method for form submission.")
+    submit_method: str = Field(
+        default="POST", description="HTTP method for form submission."
+    )
 
 
 class ComponentSchema(BaseModel):
@@ -363,6 +373,7 @@ class UISchema(BaseModel):
 # ---------------------------------------------------------------------------
 # Auth Schema
 # ---------------------------------------------------------------------------
+
 
 class RoleSchema(BaseModel):
     """A user role."""
@@ -444,10 +455,13 @@ class AuthSchema(BaseModel):
 # Validation Report
 # ---------------------------------------------------------------------------
 
+
 class ErrorEntry(BaseModel):
     """A validation error."""
 
-    layer: str = Field(description="Schema layer: 'db', 'api', 'ui', 'auth', 'architecture'.")
+    layer: str = Field(
+        description="Schema layer: 'db', 'api', 'ui', 'auth', 'architecture'."
+    )
     field: str = Field(description="Field or element that has the error.")
     description: str = Field(description="Description of the error.")
 
@@ -498,16 +512,19 @@ class ValidationReport(BaseModel):
 # Repair Strategy Classification (Feature F)
 # ---------------------------------------------------------------------------
 
+
 class RepairStrategy(str):
     """Repair strategy label. One of: STRUCTURAL, FIELD, CONSISTENCY, ESCALATED."""
-    STRUCTURAL  = "STRUCTURAL"   # JSON parse failure, malformed/truncated output
-    FIELD       = "FIELD"        # Missing required field, wrong type
+
+    STRUCTURAL = "STRUCTURAL"  # JSON parse failure, malformed/truncated output
+    FIELD = "FIELD"  # Missing required field, wrong type
     CONSISTENCY = "CONSISTENCY"  # Cross-layer reference mismatch
-    ESCALATED   = "ESCALATED"    # Unresolved errors after 2+ attempts -> HITL
+    ESCALATED = "ESCALATED"  # Unresolved errors after 2+ attempts -> HITL
 
 
 class RepairLogEntry(BaseModel):
     """One repair attempt log entry — logged whether repair succeeded or failed."""
+
     attempt_number: int = Field(description="Repair attempt number (1-indexed).")
     strategy: str = Field(
         description="Classified strategy: STRUCTURAL | FIELD | CONSISTENCY | ESCALATED."
@@ -554,13 +571,14 @@ class RepairReport(BaseModel):
     )
     repair_log: List[RepairLogEntry] = Field(
         default_factory=list,
-        description="Per-attempt repair log with strategy, error, and outcome."
+        description="Per-attempt repair log with strategy, error, and outcome.",
     )
 
 
 # ---------------------------------------------------------------------------
 # Runtime Report
 # ---------------------------------------------------------------------------
+
 
 class SimulatedFlow(BaseModel):
     """A simulated execution flow."""
@@ -598,12 +616,17 @@ class RuntimeReport(BaseModel):
 # Final Output
 # ---------------------------------------------------------------------------
 
+
 class EvalMetrics(BaseModel):
     """Pipeline evaluation metrics."""
 
     total_latency_ms: int = Field(description="Total pipeline latency in milliseconds.")
-    total_tokens: int = Field(default=0, description="Total tokens used across all agents.")
-    repair_count: int = Field(default=0, description="Number of repair loops triggered.")
+    total_tokens: int = Field(
+        default=0, description="Total tokens used across all agents."
+    )
+    repair_count: int = Field(
+        default=0, description="Number of repair loops triggered."
+    )
     hitl_count: int = Field(default=0, description="Number of HITL interactions.")
     stage_latencies: Dict[str, int] = Field(
         default_factory=dict,
@@ -633,14 +656,24 @@ class FinalOutput(BaseModel):
 
     session_id: str = Field(description="Unique session identifier.")
     prompt: str = Field(description="Original user prompt.")
-    intent: Optional[IntentSchema] = Field(default=None, description="Extracted intent.")
+    intent: Optional[IntentSchema] = Field(
+        default=None, description="Extracted intent."
+    )
     architecture: Optional[ArchitectureSchema] = Field(
         default=None, description="Designed architecture."
     )
-    db_schema: Optional[DBSchema] = Field(default=None, description="Generated DB schema.")
-    api_schema: Optional[APISchema] = Field(default=None, description="Generated API schema.")
-    ui_schema: Optional[UISchema] = Field(default=None, description="Generated UI schema.")
-    auth_schema: Optional[AuthSchema] = Field(default=None, description="Generated auth schema.")
+    db_schema: Optional[DBSchema] = Field(
+        default=None, description="Generated DB schema."
+    )
+    api_schema: Optional[APISchema] = Field(
+        default=None, description="Generated API schema."
+    )
+    ui_schema: Optional[UISchema] = Field(
+        default=None, description="Generated UI schema."
+    )
+    auth_schema: Optional[AuthSchema] = Field(
+        default=None, description="Generated auth schema."
+    )
     validation_report: Optional[ValidationReport] = Field(
         default=None, description="Cross-layer validation report."
     )
@@ -660,7 +693,7 @@ class FinalOutput(BaseModel):
     )
     app_spec: Optional[AppSpec] = Field(
         default=None,
-        description="Unified AppSpec view assembled from all pipeline outputs. Additive — does not replace existing schema fields."
+        description="Unified AppSpec view assembled from all pipeline outputs. Additive — does not replace existing schema fields.",
     )
     mermaid_diagrams: MermaidDiagrams = Field(
         default_factory=MermaidDiagrams,
@@ -687,12 +720,14 @@ class FinalOutput(BaseModel):
 # Integration Reference Types (used in AppSpec — Features B, C, D)
 # ---------------------------------------------------------------------------
 
+
 class IntegrationRef(BaseModel):
     """
     A reference to a registered integration.
     integration_id must resolve against the integration REGISTRY at runtime.
     action_id must be a valid action on that integration.
     """
+
     integration_id: str = Field(
         description="Integration ID from the registry, e.g. 'slack', 'stripe'."
     )
@@ -703,7 +738,9 @@ class IntegrationRef(BaseModel):
     def is_valid(self) -> bool:
         """Check that both integration_id and action_id exist in the registry."""
         from compiler.integrations.registry import get_action
+
         return get_action(self.integration_id, self.action_id) is not None
+
 
 # ---------------------------------------------------------------------------
 # Workflow Stub Types (Feature B)
@@ -715,47 +752,73 @@ class IntegrationRef(BaseModel):
 # AppSpec Types (Feature D)
 # ---------------------------------------------------------------------------
 
+
 class AppSpecMeta(BaseModel):
     """High-level application metadata derived from intent extraction."""
+
     app_name: str = Field(description="Application name derived from intent.")
     app_type: str = Field(description="Application type, e.g. crm, ecommerce.")
-    description: str = Field(default="", description="Brief description from user prompt.")
-    features: List[str] = Field(default_factory=list, description="Features from IntentSchema.")
-    assumptions: List[str] = Field(default_factory=list, description="Assumptions from IntentSchema.")
+    description: str = Field(
+        default="", description="Brief description from user prompt."
+    )
+    features: List[str] = Field(
+        default_factory=list, description="Features from IntentSchema."
+    )
+    assumptions: List[str] = Field(
+        default_factory=list, description="Assumptions from IntentSchema."
+    )
 
 
 class AppSpecEntity(BaseModel):
     """A domain entity with DB-level field listing. Assembled from architecture + db_schema."""
+
     name: str = Field(description="Entity name from ArchitectureSchema.")
     table_name: str = Field(description="Corresponding DB table name.")
-    fields: List[str] = Field(default_factory=list, description="Column names from DBSchema.")
-    relations: List[str] = Field(default_factory=list, description="FK relation descriptions.")
+    fields: List[str] = Field(
+        default_factory=list, description="Column names from DBSchema."
+    )
+    relations: List[str] = Field(
+        default_factory=list, description="FK relation descriptions."
+    )
 
 
 class AppSpecPage(BaseModel):
     """A UI page entry. Assembled from UISchema."""
+
     path: str = Field(description="URL path from UISchema.")
     title: str = Field(description="Page title from UISchema.")
-    role_required: Optional[str] = Field(default=None, description="Role gate from UISchema.")
+    role_required: Optional[str] = Field(
+        default=None, description="Role gate from UISchema."
+    )
     layout: str = Field(
         default="list",
-        description="Page layout type: list | detail | dashboard | settings."
+        description="Page layout type: list | detail | dashboard | settings.",
     )
-    bound_entity: Optional[str] = Field(default=None, description="Entity name matched from page path.")
+    bound_entity: Optional[str] = Field(
+        default=None, description="Entity name matched from page path."
+    )
 
 
 class AppSpecEndpoint(BaseModel):
     """A condensed API endpoint entry. Assembled from APISchema."""
+
     method: str = Field(description="HTTP method.")
     path: str = Field(description="Endpoint path.")
     auth_required: bool = Field(description="Whether auth is required.")
-    required_role: Optional[str] = Field(default=None, description="Role required if any.")
-    handler_description: str = Field(default="", description="What the endpoint handler does.")
-    rate_limit_flag: bool = Field(default=False, description="True if rate limiting should be applied.")
+    required_role: Optional[str] = Field(
+        default=None, description="Role required if any."
+    )
+    handler_description: str = Field(
+        default="", description="What the endpoint handler does."
+    )
+    rate_limit_flag: bool = Field(
+        default=False, description="True if rate limiting should be applied."
+    )
 
 
 class AppSpecAuthRules(BaseModel):
     """Auth strategy and role list. Assembled from AuthSchema."""
+
     auth_strategy: str = Field(description="JWT, session, or oauth2.")
     roles: List[str] = Field(default_factory=list, description="All role names.")
 
@@ -768,26 +831,32 @@ class AppSpec(BaseModel):
     References integration_hooks and workflow_stubs by value (they are already
     normalized and not duplicated elsewhere in FinalOutput).
     """
+
     meta: AppSpecMeta = Field(description="Application metadata.")
-    entities: List[AppSpecEntity] = Field(default_factory=list, description="Domain entities with DB fields.")
+    entities: List[AppSpecEntity] = Field(
+        default_factory=list, description="Domain entities with DB fields."
+    )
     pages: List[AppSpecPage] = Field(default_factory=list, description="UI pages.")
-    api_endpoints: List[AppSpecEndpoint] = Field(default_factory=list, description="API endpoints.")
+    api_endpoints: List[AppSpecEndpoint] = Field(
+        default_factory=list, description="API endpoints."
+    )
     auth_rules: AppSpecAuthRules = Field(
         default_factory=lambda: AppSpecAuthRules(auth_strategy="jwt", roles=[]),
-        description="Auth strategy and roles."
+        description="Auth strategy and roles.",
     )
     integration_hooks: List[IntegrationHook] = Field(
         default_factory=list,
-        description="Integration hooks from Feature C. One per unique (integration_id, action_id)."
+        description="Integration hooks from Feature C. One per unique (integration_id, action_id).",
     )
     workflow_stubs: List[WorkflowStub] = Field(
         default_factory=list,
-        description="Workflow stubs from Feature B. Linked to hooks via hook_id."
+        description="Workflow stubs from Feature B. Linked to hooks via hook_id.",
     )
 
 
 # Integration Hook Types (Feature C)
 # ---------------------------------------------------------------------------
+
 
 class IntegrationHook(BaseModel):
     """
@@ -795,38 +864,35 @@ class IntegrationHook(BaseModel):
     One hook per unique (integration_id, action_id) pair across all workflow stubs.
     WorkflowStubs reference hooks by hook_id — avoiding data duplication.
     """
+
     hook_id: str = Field(
         description="Deterministic ID: hook_{integration_id}_{action_id}."
     )
-    integration_id: str = Field(
-        description="Integration ID from the registry."
-    )
-    action_id: str = Field(
-        description="Action ID within the integration."
-    )
+    integration_id: str = Field(description="Integration ID from the registry.")
+    action_id: str = Field(description="Action ID within the integration.")
     auth_type: str = Field(
         description="Auth type from registry: oauth2 | api_key | webhook_secret | none."
     )
     required_inputs: List[str] = Field(
         default_factory=list,
-        description="Required input field names from the action input_schema."
+        description="Required input field names from the action input_schema.",
     )
     is_stub: bool = Field(
         default=False,
-        description="True if the integration HTTP call is not implemented."
+        description="True if the integration HTTP call is not implemented.",
     )
     validation_status: str = Field(
-        default="valid",
-        description="Validation result: valid | invalid | stub."
+        default="valid", description="Validation result: valid | invalid | stub."
     )
     validation_errors: List[str] = Field(
         default_factory=list,
-        description="Validation error messages. Empty when validation_status is valid."
+        description="Validation error messages. Empty when validation_status is valid.",
     )
 
 
 class WorkflowTrigger(BaseModel):
     """The entity event that fires a workflow stub."""
+
     entity: str = Field(
         description="Entity name from the DataSchema, e.g. 'Deal', 'Task', 'Order'."
     )
@@ -835,7 +901,7 @@ class WorkflowTrigger(BaseModel):
     )
     condition: Optional[str] = Field(
         default=None,
-        description="Optional filter condition, e.g. \"status == 'closed'\". LLM-generated."
+        description="Optional filter condition, e.g. \"status == 'closed'\". LLM-generated.",
     )
 
 
@@ -845,6 +911,7 @@ class WorkflowStub(BaseModel):
     integration_id and action_id are validated against the integration REGISTRY.
     A stub with is_valid=False is never included in the final AppSpec output.
     """
+
     name: str = Field(
         description="Human-readable description of what this workflow does."
     )
@@ -859,25 +926,25 @@ class WorkflowStub(BaseModel):
     )
     payload_mapping: Dict[str, str] = Field(
         default_factory=dict,
-        description="Maps entity fields to action input fields. e.g. {'deal.title': 'text'}."
+        description="Maps entity fields to action input fields. e.g. {'deal.title': 'text'}.",
     )
     description: str = Field(
-        default="",
-        description="LLM-generated human-readable summary of the workflow."
+        default="", description="LLM-generated human-readable summary of the workflow."
     )
     is_valid: bool = Field(
         default=True,
-        description="False if integration_id or action_id do not exist in the registry."
+        description="False if integration_id or action_id do not exist in the registry.",
     )
     hook_id: Optional[str] = Field(
         default=None,
-        description="Reference to the IntegrationHook.hook_id that executes this stub."
+        description="Reference to the IntegrationHook.hook_id that executes this stub.",
     )
 
 
 # ---------------------------------------------------------------------------
 # SSE Event Models
 # ---------------------------------------------------------------------------
+
 
 class StageUpdateEvent(BaseModel):
     """SSE event emitted after each pipeline stage."""
@@ -890,11 +957,19 @@ class StageUpdateEvent(BaseModel):
     )
     model: str = Field(default="", description="Model used for this stage.")
     latency_ms: int = Field(default=0, description="Stage latency in milliseconds.")
-    confidence: Optional[float] = Field(default=None, description="Confidence score if available.")
+    confidence: Optional[float] = Field(
+        default=None, description="Confidence score if available."
+    )
     tokens_used: int = Field(default=0, description="Tokens used in this stage.")
-    output_summary: str = Field(default="", description="Short summary of stage output.")
-    assumptions: List[str] = Field(default_factory=list, description="Assumptions made.")
-    conflicts: List[str] = Field(default_factory=list, description="Conflicts detected.")
+    output_summary: str = Field(
+        default="", description="Short summary of stage output."
+    )
+    assumptions: List[str] = Field(
+        default_factory=list, description="Assumptions made."
+    )
+    conflicts: List[str] = Field(
+        default_factory=list, description="Conflicts detected."
+    )
 
 
 class HITLRequiredEvent(BaseModel):
@@ -931,13 +1006,17 @@ class PipelineCompleteEvent(BaseModel):
     total_tokens: int = Field(default=0, description="Total tokens used.")
     repair_count: int = Field(default=0, description="Number of repair loops.")
     hitl_count: int = Field(default=0, description="Number of HITL interactions.")
-    final_schema: Optional[FinalOutput] = Field(default=None, description="Complete final output.")
+    final_schema: Optional[FinalOutput] = Field(
+        default=None, description="Complete final output."
+    )
     mermaid_diagrams: MermaidDiagrams = Field(
         default_factory=MermaidDiagrams,
         description="Generated Mermaid diagrams.",
     )
     assumptions: List[str] = Field(default_factory=list, description="All assumptions.")
-    conflicts: List[ConflictEntry] = Field(default_factory=list, description="All conflicts.")
+    conflicts: List[ConflictEntry] = Field(
+        default_factory=list, description="All conflicts."
+    )
 
 
 class ClarifyRequest(BaseModel):
@@ -955,7 +1034,9 @@ class ModifyRequest(BaseModel):
     """Body for POST /modify — midway prompt modification."""
 
     session_id: str = Field(description="Session identifier.")
-    modification: str = Field(description="The change or addition the user wants to apply.")
+    modification: str = Field(
+        description="The change or addition the user wants to apply."
+    )
 
 
 class ModificationQueuedEvent(BaseModel):
@@ -976,5 +1057,9 @@ class ModificationAppliedEvent(BaseModel):
     event: str = Field(default="modification_applied")
     session_id: str = Field(description="Session identifier.")
     modification: str = Field(description="The applied modification text.")
-    applied_at_stage: str = Field(description="The pipeline stage where it was applied.")
-    new_prompt: str = Field(description="The updated prompt after applying modification.")
+    applied_at_stage: str = Field(
+        description="The pipeline stage where it was applied."
+    )
+    new_prompt: str = Field(
+        description="The updated prompt after applying modification."
+    )

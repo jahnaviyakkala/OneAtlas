@@ -16,15 +16,17 @@ HTTP call is not implemented. A developer can implement the call from the metada
 """
 
 from __future__ import annotations
-from typing import Literal
-from pydantic import BaseModel
 
+from typing import Literal
+
+from pydantic import BaseModel
 
 # -- Schema types --------------------------------------------------------------
 
+
 class ActionInputField(BaseModel):
     name: str
-    type: str       # "string" | "number" | "boolean" | "object" | "array"
+    type: str  # "string" | "number" | "boolean" | "object" | "array"
     required: bool
     description: str
 
@@ -58,7 +60,6 @@ class Integration(BaseModel):
 # -- Registry ------------------------------------------------------------------
 
 REGISTRY: dict[str, Integration] = {
-
     "slack": Integration(
         id="slack",
         display_name="Slack",
@@ -78,24 +79,47 @@ REGISTRY: dict[str, Integration] = {
                 display_name="Send Channel Message",
                 description="Post a plain-text or formatted message to a Slack channel.",
                 input_schema=[
-                    ActionInputField(name="channel", type="string", required=True,
-                                     description="Slack channel ID or name, e.g. #general"),
-                    ActionInputField(name="text", type="string", required=True,
-                                     description="Message body. Supports Slack mrkdwn."),
-                    ActionInputField(name="username", type="string", required=False,
-                                     description="Display name override for the bot."),
+                    ActionInputField(
+                        name="channel",
+                        type="string",
+                        required=True,
+                        description="Slack channel ID or name, e.g. #general",
+                    ),
+                    ActionInputField(
+                        name="text",
+                        type="string",
+                        required=True,
+                        description="Message body. Supports Slack mrkdwn.",
+                    ),
+                    ActionInputField(
+                        name="username",
+                        type="string",
+                        required=False,
+                        description="Display name override for the bot.",
+                    ),
                 ],
-                output_schema={"ts": "string - Slack message timestamp", "channel": "string"},
+                output_schema={
+                    "ts": "string - Slack message timestamp",
+                    "channel": "string",
+                },
             ),
             ActionDescriptor(
                 id="send_dm",
                 display_name="Send Direct Message",
                 description="Send a DM to a specific Slack user.",
                 input_schema=[
-                    ActionInputField(name="user_id", type="string", required=True,
-                                     description="Slack user ID, e.g. U012AB3CD"),
-                    ActionInputField(name="text", type="string", required=True,
-                                     description="Message body."),
+                    ActionInputField(
+                        name="user_id",
+                        type="string",
+                        required=True,
+                        description="Slack user ID, e.g. U012AB3CD",
+                    ),
+                    ActionInputField(
+                        name="text",
+                        type="string",
+                        required=True,
+                        description="Message body.",
+                    ),
                 ],
                 output_schema={"ts": "string", "channel": "string"},
             ),
@@ -104,18 +128,29 @@ REGISTRY: dict[str, Integration] = {
                 display_name="Post Block Kit Message",
                 description="Post a structured Block Kit message to a channel.",
                 input_schema=[
-                    ActionInputField(name="channel", type="string", required=True,
-                                     description="Slack channel ID or name."),
-                    ActionInputField(name="blocks", type="array", required=True,
-                                     description="Array of Slack Block Kit block objects."),
-                    ActionInputField(name="text", type="string", required=False,
-                                     description="Fallback plain-text for notifications."),
+                    ActionInputField(
+                        name="channel",
+                        type="string",
+                        required=True,
+                        description="Slack channel ID or name.",
+                    ),
+                    ActionInputField(
+                        name="blocks",
+                        type="array",
+                        required=True,
+                        description="Array of Slack Block Kit block objects.",
+                    ),
+                    ActionInputField(
+                        name="text",
+                        type="string",
+                        required=False,
+                        description="Fallback plain-text for notifications.",
+                    ),
                 ],
                 output_schema={"ts": "string", "channel": "string"},
             ),
         ],
     ),
-
     "gmail": Integration(
         id="gmail",
         display_name="Gmail / Google Workspace",
@@ -135,14 +170,30 @@ REGISTRY: dict[str, Integration] = {
                 display_name="Send Email",
                 description="Send an email from the authenticated Google account.",
                 input_schema=[
-                    ActionInputField(name="to", type="string", required=True,
-                                     description="Recipient email address."),
-                    ActionInputField(name="subject", type="string", required=True,
-                                     description="Email subject line."),
-                    ActionInputField(name="body", type="string", required=True,
-                                     description="Email body - plain text or HTML."),
-                    ActionInputField(name="cc", type="string", required=False,
-                                     description="CC recipients, comma-separated."),
+                    ActionInputField(
+                        name="to",
+                        type="string",
+                        required=True,
+                        description="Recipient email address.",
+                    ),
+                    ActionInputField(
+                        name="subject",
+                        type="string",
+                        required=True,
+                        description="Email subject line.",
+                    ),
+                    ActionInputField(
+                        name="body",
+                        type="string",
+                        required=True,
+                        description="Email body - plain text or HTML.",
+                    ),
+                    ActionInputField(
+                        name="cc",
+                        type="string",
+                        required=False,
+                        description="CC recipients, comma-separated.",
+                    ),
                 ],
                 output_schema={"message_id": "string", "thread_id": "string"},
             ),
@@ -151,22 +202,41 @@ REGISTRY: dict[str, Integration] = {
                 display_name="Create Calendar Event",
                 description="Create a Google Calendar event.",
                 input_schema=[
-                    ActionInputField(name="title", type="string", required=True,
-                                     description="Event title."),
-                    ActionInputField(name="start_time", type="string", required=True,
-                                     description="ISO 8601 start datetime."),
-                    ActionInputField(name="end_time", type="string", required=True,
-                                     description="ISO 8601 end datetime."),
-                    ActionInputField(name="attendees", type="array", required=False,
-                                     description="List of attendee email addresses."),
-                    ActionInputField(name="description", type="string", required=False,
-                                     description="Event description."),
+                    ActionInputField(
+                        name="title",
+                        type="string",
+                        required=True,
+                        description="Event title.",
+                    ),
+                    ActionInputField(
+                        name="start_time",
+                        type="string",
+                        required=True,
+                        description="ISO 8601 start datetime.",
+                    ),
+                    ActionInputField(
+                        name="end_time",
+                        type="string",
+                        required=True,
+                        description="ISO 8601 end datetime.",
+                    ),
+                    ActionInputField(
+                        name="attendees",
+                        type="array",
+                        required=False,
+                        description="List of attendee email addresses.",
+                    ),
+                    ActionInputField(
+                        name="description",
+                        type="string",
+                        required=False,
+                        description="Event description.",
+                    ),
                 ],
                 output_schema={"event_id": "string", "html_link": "string"},
             ),
         ],
     ),
-
     "stripe": Integration(
         id="stripe",
         display_name="Stripe",
@@ -186,29 +256,59 @@ REGISTRY: dict[str, Integration] = {
                 display_name="Create Customer",
                 description="Create a new Stripe customer record.",
                 input_schema=[
-                    ActionInputField(name="email", type="string", required=True,
-                                     description="Customer email address."),
-                    ActionInputField(name="name", type="string", required=False,
-                                     description="Customer full name."),
-                    ActionInputField(name="metadata", type="object", required=False,
-                                     description="Key-value metadata to attach to the customer."),
+                    ActionInputField(
+                        name="email",
+                        type="string",
+                        required=True,
+                        description="Customer email address.",
+                    ),
+                    ActionInputField(
+                        name="name",
+                        type="string",
+                        required=False,
+                        description="Customer full name.",
+                    ),
+                    ActionInputField(
+                        name="metadata",
+                        type="object",
+                        required=False,
+                        description="Key-value metadata to attach to the customer.",
+                    ),
                 ],
-                output_schema={"customer_id": "string - Stripe cus_ id",
-                               "created": "number - unix timestamp"},
+                output_schema={
+                    "customer_id": "string - Stripe cus_ id",
+                    "created": "number - unix timestamp",
+                },
             ),
             ActionDescriptor(
                 id="create_charge",
                 display_name="Create Charge",
                 description="Charge a payment method for a specific amount.",
                 input_schema=[
-                    ActionInputField(name="amount", type="number", required=True,
-                                     description="Amount in smallest currency unit (e.g. cents)."),
-                    ActionInputField(name="currency", type="string", required=True,
-                                     description="ISO 4217 currency code, e.g. usd."),
-                    ActionInputField(name="customer_id", type="string", required=True,
-                                     description="Stripe customer ID."),
-                    ActionInputField(name="description", type="string", required=False,
-                                     description="Human-readable charge description."),
+                    ActionInputField(
+                        name="amount",
+                        type="number",
+                        required=True,
+                        description="Amount in smallest currency unit (e.g. cents).",
+                    ),
+                    ActionInputField(
+                        name="currency",
+                        type="string",
+                        required=True,
+                        description="ISO 4217 currency code, e.g. usd.",
+                    ),
+                    ActionInputField(
+                        name="customer_id",
+                        type="string",
+                        required=True,
+                        description="Stripe customer ID.",
+                    ),
+                    ActionInputField(
+                        name="description",
+                        type="string",
+                        required=False,
+                        description="Human-readable charge description.",
+                    ),
                 ],
                 output_schema={"charge_id": "string", "status": "string"},
             ),
@@ -217,12 +317,24 @@ REGISTRY: dict[str, Integration] = {
                 display_name="Manage Subscription",
                 description="Create, update, or cancel a Stripe subscription.",
                 input_schema=[
-                    ActionInputField(name="customer_id", type="string", required=True,
-                                     description="Stripe customer ID."),
-                    ActionInputField(name="price_id", type="string", required=True,
-                                     description="Stripe Price ID for the plan."),
-                    ActionInputField(name="action", type="string", required=True,
-                                     description="One of: create | update | cancel"),
+                    ActionInputField(
+                        name="customer_id",
+                        type="string",
+                        required=True,
+                        description="Stripe customer ID.",
+                    ),
+                    ActionInputField(
+                        name="price_id",
+                        type="string",
+                        required=True,
+                        description="Stripe Price ID for the plan.",
+                    ),
+                    ActionInputField(
+                        name="action",
+                        type="string",
+                        required=True,
+                        description="One of: create | update | cancel",
+                    ),
                 ],
                 output_schema={"subscription_id": "string", "status": "string"},
             ),
@@ -231,16 +343,23 @@ REGISTRY: dict[str, Integration] = {
                 display_name="Issue Refund",
                 description="Issue a full or partial refund for a charge.",
                 input_schema=[
-                    ActionInputField(name="charge_id", type="string", required=True,
-                                     description="Stripe charge ID to refund."),
-                    ActionInputField(name="amount", type="number", required=False,
-                                     description="Partial refund amount in smallest unit. Omit for full refund."),
+                    ActionInputField(
+                        name="charge_id",
+                        type="string",
+                        required=True,
+                        description="Stripe charge ID to refund.",
+                    ),
+                    ActionInputField(
+                        name="amount",
+                        type="number",
+                        required=False,
+                        description="Partial refund amount in smallest unit. Omit for full refund.",
+                    ),
                 ],
                 output_schema={"refund_id": "string", "status": "string"},
             ),
         ],
     ),
-
     "whatsapp": Integration(
         id="whatsapp",
         display_name="WhatsApp via Twilio",
@@ -260,12 +379,24 @@ REGISTRY: dict[str, Integration] = {
                 display_name="Send Template Message",
                 description="Send a pre-approved WhatsApp message template via Twilio.",
                 input_schema=[
-                    ActionInputField(name="to", type="string", required=True,
-                                     description="Recipient phone number in E.164 format, e.g. +14155552671"),
-                    ActionInputField(name="template_sid", type="string", required=True,
-                                     description="Twilio content template SID."),
-                    ActionInputField(name="template_variables", type="object", required=False,
-                                     description="Key-value pairs for template variable substitution."),
+                    ActionInputField(
+                        name="to",
+                        type="string",
+                        required=True,
+                        description="Recipient phone number in E.164 format, e.g. +14155552671",
+                    ),
+                    ActionInputField(
+                        name="template_sid",
+                        type="string",
+                        required=True,
+                        description="Twilio content template SID.",
+                    ),
+                    ActionInputField(
+                        name="template_variables",
+                        type="object",
+                        required=False,
+                        description="Key-value pairs for template variable substitution.",
+                    ),
                 ],
                 output_schema={"message_sid": "string", "status": "string"},
             ),
@@ -274,16 +405,23 @@ REGISTRY: dict[str, Integration] = {
                 display_name="Send Notification",
                 description="Send a freeform WhatsApp notification message.",
                 input_schema=[
-                    ActionInputField(name="to", type="string", required=True,
-                                     description="Recipient phone number in E.164 format."),
-                    ActionInputField(name="body", type="string", required=True,
-                                     description="Message body text."),
+                    ActionInputField(
+                        name="to",
+                        type="string",
+                        required=True,
+                        description="Recipient phone number in E.164 format.",
+                    ),
+                    ActionInputField(
+                        name="body",
+                        type="string",
+                        required=True,
+                        description="Message body text.",
+                    ),
                 ],
                 output_schema={"message_sid": "string", "status": "string"},
             ),
         ],
     ),
-
     "webhook": Integration(
         id="webhook",
         display_name="Generic Webhook",
@@ -303,20 +441,35 @@ REGISTRY: dict[str, Integration] = {
                 display_name="POST Payload",
                 description="POST a JSON payload to the configured URL with HMAC signature header.",
                 input_schema=[
-                    ActionInputField(name="url", type="string", required=True,
-                                     description="Target URL to POST to."),
-                    ActionInputField(name="payload", type="object", required=True,
-                                     description="JSON payload to send. Field mappings from the entity."),
-                    ActionInputField(name="secret", type="string", required=False,
-                                     description="HMAC secret for X-Signature header. Omit to skip signing."),
-                    ActionInputField(name="headers", type="object", required=False,
-                                     description="Additional HTTP headers to include."),
+                    ActionInputField(
+                        name="url",
+                        type="string",
+                        required=True,
+                        description="Target URL to POST to.",
+                    ),
+                    ActionInputField(
+                        name="payload",
+                        type="object",
+                        required=True,
+                        description="JSON payload to send. Field mappings from the entity.",
+                    ),
+                    ActionInputField(
+                        name="secret",
+                        type="string",
+                        required=False,
+                        description="HMAC secret for X-Signature header. Omit to skip signing.",
+                    ),
+                    ActionInputField(
+                        name="headers",
+                        type="object",
+                        required=False,
+                        description="Additional HTTP headers to include.",
+                    ),
                 ],
                 output_schema={"status_code": "number", "response_body": "string"},
             ),
         ],
     ),
-
     "jira": Integration(
         id="jira",
         display_name="Jira",
@@ -338,18 +491,42 @@ REGISTRY: dict[str, Integration] = {
                 description="Create a new Jira issue. [STUB - HTTP call not implemented]",
                 is_stub=True,
                 input_schema=[
-                    ActionInputField(name="project_key", type="string", required=True,
-                                     description="Jira project key, e.g. ENG"),
-                    ActionInputField(name="summary", type="string", required=True,
-                                     description="Issue summary / title."),
-                    ActionInputField(name="issue_type", type="string", required=True,
-                                     description="Issue type: Bug | Task | Story | Epic"),
-                    ActionInputField(name="description", type="string", required=False,
-                                     description="Issue description body."),
-                    ActionInputField(name="assignee", type="string", required=False,
-                                     description="Assignee account ID or email."),
+                    ActionInputField(
+                        name="project_key",
+                        type="string",
+                        required=True,
+                        description="Jira project key, e.g. ENG",
+                    ),
+                    ActionInputField(
+                        name="summary",
+                        type="string",
+                        required=True,
+                        description="Issue summary / title.",
+                    ),
+                    ActionInputField(
+                        name="issue_type",
+                        type="string",
+                        required=True,
+                        description="Issue type: Bug | Task | Story | Epic",
+                    ),
+                    ActionInputField(
+                        name="description",
+                        type="string",
+                        required=False,
+                        description="Issue description body.",
+                    ),
+                    ActionInputField(
+                        name="assignee",
+                        type="string",
+                        required=False,
+                        description="Assignee account ID or email.",
+                    ),
                 ],
-                output_schema={"issue_key": "string", "issue_id": "string", "url": "string"},
+                output_schema={
+                    "issue_key": "string",
+                    "issue_id": "string",
+                    "url": "string",
+                },
             ),
             ActionDescriptor(
                 id="update_status",
@@ -357,16 +534,23 @@ REGISTRY: dict[str, Integration] = {
                 description="Transition a Jira issue to a new status. [STUB]",
                 is_stub=True,
                 input_schema=[
-                    ActionInputField(name="issue_key", type="string", required=True,
-                                     description="Jira issue key, e.g. ENG-42"),
-                    ActionInputField(name="transition_name", type="string", required=True,
-                                     description="Target status name, e.g. In Progress"),
+                    ActionInputField(
+                        name="issue_key",
+                        type="string",
+                        required=True,
+                        description="Jira issue key, e.g. ENG-42",
+                    ),
+                    ActionInputField(
+                        name="transition_name",
+                        type="string",
+                        required=True,
+                        description="Target status name, e.g. In Progress",
+                    ),
                 ],
                 output_schema={"success": "boolean"},
             ),
         ],
     ),
-
     "google_sheets": Integration(
         id="google_sheets",
         display_name="Google Sheets",
@@ -394,16 +578,36 @@ REGISTRY: dict[str, Integration] = {
                 description="Append a new row to a Google Sheet using the spreadsheets.values.append API.",
                 is_stub=False,
                 input_schema=[
-                    ActionInputField(name="spreadsheet_id", type="string", required=True,
-                                     description="Google Sheets document ID from the URL."),
-                    ActionInputField(name="sheet_name", type="string", required=True,
-                                     description="Name of the tab/sheet, e.g. Sheet1."),
-                    ActionInputField(name="values", type="array", required=True,
-                                     description="Array of cell values for the new row, e.g. [id, name, status]."),
-                    ActionInputField(name="value_input_option", type="string", required=False,
-                                     description="How values are interpreted: RAW or USER_ENTERED. Defaults to USER_ENTERED."),
+                    ActionInputField(
+                        name="spreadsheet_id",
+                        type="string",
+                        required=True,
+                        description="Google Sheets document ID from the URL.",
+                    ),
+                    ActionInputField(
+                        name="sheet_name",
+                        type="string",
+                        required=True,
+                        description="Name of the tab/sheet, e.g. Sheet1.",
+                    ),
+                    ActionInputField(
+                        name="values",
+                        type="array",
+                        required=True,
+                        description="Array of cell values for the new row, e.g. [id, name, status].",
+                    ),
+                    ActionInputField(
+                        name="value_input_option",
+                        type="string",
+                        required=False,
+                        description="How values are interpreted: RAW or USER_ENTERED. Defaults to USER_ENTERED.",
+                    ),
                 ],
-                output_schema={"updated_range": "string", "updated_rows": "number", "spreadsheet_id": "string"},
+                output_schema={
+                    "updated_range": "string",
+                    "updated_rows": "number",
+                    "spreadsheet_id": "string",
+                },
             ),
             ActionDescriptor(
                 id="update_cell",
@@ -411,14 +615,30 @@ REGISTRY: dict[str, Integration] = {
                 description="Update a specific cell or range using spreadsheets.values.update.",
                 is_stub=False,
                 input_schema=[
-                    ActionInputField(name="spreadsheet_id", type="string", required=True,
-                                     description="Google Sheets document ID."),
-                    ActionInputField(name="range", type="string", required=True,
-                                     description="A1 notation range, e.g. Sheet1!B2 or Sheet1!A1:C3."),
-                    ActionInputField(name="values", type="array", required=True,
-                                     description="2D array of values to write, e.g. [[val1, val2]]."),
-                    ActionInputField(name="value_input_option", type="string", required=False,
-                                     description="RAW or USER_ENTERED. Defaults to USER_ENTERED."),
+                    ActionInputField(
+                        name="spreadsheet_id",
+                        type="string",
+                        required=True,
+                        description="Google Sheets document ID.",
+                    ),
+                    ActionInputField(
+                        name="range",
+                        type="string",
+                        required=True,
+                        description="A1 notation range, e.g. Sheet1!B2 or Sheet1!A1:C3.",
+                    ),
+                    ActionInputField(
+                        name="values",
+                        type="array",
+                        required=True,
+                        description="2D array of values to write, e.g. [[val1, val2]].",
+                    ),
+                    ActionInputField(
+                        name="value_input_option",
+                        type="string",
+                        required=False,
+                        description="RAW or USER_ENTERED. Defaults to USER_ENTERED.",
+                    ),
                 ],
                 output_schema={"updated_range": "string", "updated_cells": "number"},
             ),
@@ -428,12 +648,24 @@ REGISTRY: dict[str, Integration] = {
                 description="Add a new tab/sheet to an existing spreadsheet via batchUpdate.",
                 is_stub=False,
                 input_schema=[
-                    ActionInputField(name="spreadsheet_id", type="string", required=True,
-                                     description="Google Sheets document ID."),
-                    ActionInputField(name="title", type="string", required=True,
-                                     description="Title for the new sheet tab."),
-                    ActionInputField(name="index", type="number", required=False,
-                                     description="Position index for the new sheet (0-based). Appends at end if omitted."),
+                    ActionInputField(
+                        name="spreadsheet_id",
+                        type="string",
+                        required=True,
+                        description="Google Sheets document ID.",
+                    ),
+                    ActionInputField(
+                        name="title",
+                        type="string",
+                        required=True,
+                        description="Title for the new sheet tab.",
+                    ),
+                    ActionInputField(
+                        name="index",
+                        type="number",
+                        required=False,
+                        description="Position index for the new sheet (0-based). Appends at end if omitted.",
+                    ),
                 ],
                 output_schema={"sheet_id": "number", "title": "string"},
             ),
@@ -443,18 +675,32 @@ REGISTRY: dict[str, Integration] = {
                 description="Write multiple ranges in a single API call using spreadsheets.values.batchUpdate.",
                 is_stub=False,
                 input_schema=[
-                    ActionInputField(name="spreadsheet_id", type="string", required=True,
-                                     description="Google Sheets document ID."),
-                    ActionInputField(name="data", type="array", required=True,
-                                     description="Array of {range, values} objects for batch write."),
-                    ActionInputField(name="value_input_option", type="string", required=False,
-                                     description="USER_ENTERED or RAW."),
+                    ActionInputField(
+                        name="spreadsheet_id",
+                        type="string",
+                        required=True,
+                        description="Google Sheets document ID.",
+                    ),
+                    ActionInputField(
+                        name="data",
+                        type="array",
+                        required=True,
+                        description="Array of {range, values} objects for batch write.",
+                    ),
+                    ActionInputField(
+                        name="value_input_option",
+                        type="string",
+                        required=False,
+                        description="USER_ENTERED or RAW.",
+                    ),
                 ],
-                output_schema={"total_updated_cells": "number", "total_updated_rows": "number"},
+                output_schema={
+                    "total_updated_cells": "number",
+                    "total_updated_rows": "number",
+                },
             ),
         ],
     ),
-
     "hubspot": Integration(
         id="hubspot",
         display_name="HubSpot",
@@ -476,14 +722,30 @@ REGISTRY: dict[str, Integration] = {
                 description="Create or update a HubSpot contact. [STUB]",
                 is_stub=True,
                 input_schema=[
-                    ActionInputField(name="email", type="string", required=True,
-                                     description="Contact email address."),
-                    ActionInputField(name="firstname", type="string", required=False,
-                                     description="First name."),
-                    ActionInputField(name="lastname", type="string", required=False,
-                                     description="Last name."),
-                    ActionInputField(name="properties", type="object", required=False,
-                                     description="Additional HubSpot contact properties."),
+                    ActionInputField(
+                        name="email",
+                        type="string",
+                        required=True,
+                        description="Contact email address.",
+                    ),
+                    ActionInputField(
+                        name="firstname",
+                        type="string",
+                        required=False,
+                        description="First name.",
+                    ),
+                    ActionInputField(
+                        name="lastname",
+                        type="string",
+                        required=False,
+                        description="Last name.",
+                    ),
+                    ActionInputField(
+                        name="properties",
+                        type="object",
+                        required=False,
+                        description="Additional HubSpot contact properties.",
+                    ),
                 ],
                 output_schema={"contact_id": "string", "vid": "number"},
             ),
@@ -493,16 +755,23 @@ REGISTRY: dict[str, Integration] = {
                 description="Move a HubSpot deal to a new pipeline stage. [STUB]",
                 is_stub=True,
                 input_schema=[
-                    ActionInputField(name="deal_id", type="string", required=True,
-                                     description="HubSpot deal ID."),
-                    ActionInputField(name="stage_id", type="string", required=True,
-                                     description="Target pipeline stage ID."),
+                    ActionInputField(
+                        name="deal_id",
+                        type="string",
+                        required=True,
+                        description="HubSpot deal ID.",
+                    ),
+                    ActionInputField(
+                        name="stage_id",
+                        type="string",
+                        required=True,
+                        description="Target pipeline stage ID.",
+                    ),
                 ],
                 output_schema={"deal_id": "string", "stage_id": "string"},
             ),
         ],
     ),
-
     "notion": Integration(
         id="notion",
         display_name="Notion",
@@ -524,12 +793,24 @@ REGISTRY: dict[str, Integration] = {
                 description="Create a new page in a Notion database. [STUB]",
                 is_stub=True,
                 input_schema=[
-                    ActionInputField(name="database_id", type="string", required=True,
-                                     description="Notion database ID."),
-                    ActionInputField(name="title", type="string", required=True,
-                                     description="Page title."),
-                    ActionInputField(name="properties", type="object", required=False,
-                                     description="Database property values for the new page."),
+                    ActionInputField(
+                        name="database_id",
+                        type="string",
+                        required=True,
+                        description="Notion database ID.",
+                    ),
+                    ActionInputField(
+                        name="title",
+                        type="string",
+                        required=True,
+                        description="Page title.",
+                    ),
+                    ActionInputField(
+                        name="properties",
+                        type="object",
+                        required=False,
+                        description="Database property values for the new page.",
+                    ),
                 ],
                 output_schema={"page_id": "string", "url": "string"},
             ),
@@ -539,18 +820,29 @@ REGISTRY: dict[str, Integration] = {
                 description="Append a content block to an existing Notion page. [STUB]",
                 is_stub=True,
                 input_schema=[
-                    ActionInputField(name="page_id", type="string", required=True,
-                                     description="Notion page ID to append to."),
-                    ActionInputField(name="block_type", type="string", required=True,
-                                     description="Block type: paragraph | heading_1 | bulleted_list_item"),
-                    ActionInputField(name="content", type="string", required=True,
-                                     description="Text content for the block."),
+                    ActionInputField(
+                        name="page_id",
+                        type="string",
+                        required=True,
+                        description="Notion page ID to append to.",
+                    ),
+                    ActionInputField(
+                        name="block_type",
+                        type="string",
+                        required=True,
+                        description="Block type: paragraph | heading_1 | bulleted_list_item",
+                    ),
+                    ActionInputField(
+                        name="content",
+                        type="string",
+                        required=True,
+                        description="Text content for the block.",
+                    ),
                 ],
                 output_schema={"block_id": "string"},
             ),
         ],
     ),
-
     "twilio_sms": Integration(
         id="twilio_sms",
         display_name="Twilio SMS",
@@ -572,12 +864,24 @@ REGISTRY: dict[str, Integration] = {
                 description="Send an SMS message to a phone number via Twilio. [STUB]",
                 is_stub=True,
                 input_schema=[
-                    ActionInputField(name="to", type="string", required=True,
-                                     description="Recipient phone number in E.164 format."),
-                    ActionInputField(name="body", type="string", required=True,
-                                     description="SMS message body (max 160 chars for single segment)."),
-                    ActionInputField(name="from_number", type="string", required=False,
-                                     description="Sender Twilio phone number. Uses account default if omitted."),
+                    ActionInputField(
+                        name="to",
+                        type="string",
+                        required=True,
+                        description="Recipient phone number in E.164 format.",
+                    ),
+                    ActionInputField(
+                        name="body",
+                        type="string",
+                        required=True,
+                        description="SMS message body (max 160 chars for single segment).",
+                    ),
+                    ActionInputField(
+                        name="from_number",
+                        type="string",
+                        required=False,
+                        description="Sender Twilio phone number. Uses account default if omitted.",
+                    ),
                 ],
                 output_schema={"message_sid": "string", "status": "string"},
             ),
@@ -587,10 +891,18 @@ REGISTRY: dict[str, Integration] = {
                 description="Send a one-time passcode via Twilio Verify. [STUB]",
                 is_stub=True,
                 input_schema=[
-                    ActionInputField(name="to", type="string", required=True,
-                                     description="Recipient phone number in E.164 format."),
-                    ActionInputField(name="channel", type="string", required=True,
-                                     description="Delivery channel: sms | call"),
+                    ActionInputField(
+                        name="to",
+                        type="string",
+                        required=True,
+                        description="Recipient phone number in E.164 format.",
+                    ),
+                    ActionInputField(
+                        name="channel",
+                        type="string",
+                        required=True,
+                        description="Delivery channel: sms | call",
+                    ),
                 ],
                 output_schema={"verification_sid": "string", "status": "string"},
             ),
@@ -600,6 +912,7 @@ REGISTRY: dict[str, Integration] = {
 
 
 # -- Public helpers ------------------------------------------------------------
+
 
 def get_integration(integration_id: str) -> Integration | None:
     """Return an Integration by id, or None if not registered."""

@@ -36,8 +36,8 @@ from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel
 from sse_starlette.sse import EventSourceResponse
 
-from compiler.schemas.contracts import ClarifyRequest, ModifyRequest
 from compiler.crew import _sanitize_mermaid
+from compiler.schemas.contracts import ClarifyRequest, ModifyRequest
 from compiler.tools.routing import routing_summary
 
 # ── Load .env before anything else ───────────────────────────────────────────
@@ -50,6 +50,7 @@ load_dotenv()
 # This monkey-patch disables the injection entirely.
 try:
     import crewai.llms.cache as _crewai_cache
+
     _crewai_cache.mark_cache_breakpoint = lambda msg: msg  # no-op
 except (ImportError, AttributeError):
     pass  # If the module doesn't exist in this version, no action needed
@@ -57,32 +58,34 @@ except (ImportError, AttributeError):
 # ── Logging setup ─────────────────────────────────────────────────────────────
 LOG_LEVEL = os.getenv("LOG_LEVEL", "debug").upper()
 
-logging.config.dictConfig({
-    "version": 1,
-    "disable_existing_loggers": False,
-    "formatters": {
-        "detailed": {
-            "format": "%(asctime)s [%(levelname)s] %(name)s — %(message)s",
-            "datefmt": "%Y-%m-%d %H:%M:%S",
+logging.config.dictConfig(
+    {
+        "version": 1,
+        "disable_existing_loggers": False,
+        "formatters": {
+            "detailed": {
+                "format": "%(asctime)s [%(levelname)s] %(name)s — %(message)s",
+                "datefmt": "%Y-%m-%d %H:%M:%S",
+            },
         },
-    },
-    "handlers": {
-        "console": {
-            "class": "logging.StreamHandler",
-            "stream": "ext://sys.stdout",
-            "formatter": "detailed",
+        "handlers": {
+            "console": {
+                "class": "logging.StreamHandler",
+                "stream": "ext://sys.stdout",
+                "formatter": "detailed",
+            },
         },
-    },
-    "root": {
-        "level": LOG_LEVEL,
-        "handlers": ["console"],
-    },
-    "loggers": {
-        "protoflow": {"level": LOG_LEVEL, "propagate": True},
-        "uvicorn": {"level": "INFO", "propagate": True},
-        "crewai": {"level": "INFO", "propagate": True},
-    },
-})
+        "root": {
+            "level": LOG_LEVEL,
+            "handlers": ["console"],
+        },
+        "loggers": {
+            "protoflow": {"level": LOG_LEVEL, "propagate": True},
+            "uvicorn": {"level": "INFO", "propagate": True},
+            "crewai": {"level": "INFO", "propagate": True},
+        },
+    }
+)
 
 logger = logging.getLogger("protoflow.main")
 
@@ -101,7 +104,10 @@ else:
 if not _OPENROUTER_KEY or _OPENROUTER_KEY == "your_openrouter_api_key_here":
     logger.info("[startup] OPENROUTER_API_KEY not set (not required — using Groq).")
 else:
-    logger.info("[startup] OPENROUTER_API_KEY loaded (length=%d) — kept as fallback.", len(_OPENROUTER_KEY))
+    logger.info(
+        "[startup] OPENROUTER_API_KEY loaded (length=%d) — kept as fallback.",
+        len(_OPENROUTER_KEY),
+    )
 
 from src.compiler.tools.routing import model_for_stage
 
@@ -109,9 +115,16 @@ from src.compiler.tools.routing import model_for_stage
 # Model map is now driven by routing.yaml via model_for_stage()
 logger.info("[startup] Agent model map:")
 for agent_name in [
-    "intent_extractor", "system_architect", "db_schema_agent", "api_schema_agent",
-    "ui_schema_agent", "auth_agent", "validator_agent", "repair_agent",
-    "runtime_validator", "progress_logger"
+    "intent_extractor",
+    "system_architect",
+    "db_schema_agent",
+    "api_schema_agent",
+    "ui_schema_agent",
+    "auth_agent",
+    "validator_agent",
+    "repair_agent",
+    "runtime_validator",
+    "progress_logger",
 ]:
     primary, fallback, _ = model_for_stage(agent_name)
     logger.info("  %-22s -> %s (fallback: %s)", agent_name, primary, fallback)
@@ -123,13 +136,17 @@ _session_store: dict[str, PipelineSession] = {}
 _session_lock = asyncio.Lock()
 SESSION_TTL = int(os.getenv("SESSION_TTL_SECONDS", "3600"))
 
+
 async def _get_session(session_id: str) -> PipelineSession:
     async with _session_lock:
         session = _session_store.get(session_id)
     if session is None:
         logger.warning("[main] Session not found: %s", session_id)
-        raise HTTPException(status_code=404, detail=f"Session '{session_id}' not found.")
+        raise HTTPException(
+            status_code=404, detail=f"Session '{session_id}' not found."
+        )
     return session
+
 
 async def _cleanup_expired_sessions() -> None:
     """Background task: remove sessions older than SESSION_TTL."""
@@ -138,7 +155,8 @@ async def _cleanup_expired_sessions() -> None:
         now = time.monotonic()
         async with _session_lock:
             expired = [
-                sid for sid, s in _session_store.items()
+                sid
+                for sid, s in _session_store.items()
                 if (now - s.started_at) > SESSION_TTL
             ]
             for sid in expired:
@@ -176,8 +194,8 @@ app.add_middleware(
 
 from compiler.eval.runner import eval_router
 from compiler.integrations.registry import REGISTRY
-app.include_router(eval_router)
 
+app.include_router(eval_router)
 
 
 # ── Request timing middleware ─────────────────────────────────────────────────
@@ -189,7 +207,10 @@ async def timing_middleware(request: Request, call_next):
     response.headers["X-Response-Time-Ms"] = str(elapsed_ms)
     logger.debug(
         "[http] %s %s → %d (%dms)",
-        request.method, request.url.path, response.status_code, elapsed_ms,
+        request.method,
+        request.url.path,
+        response.status_code,
+        elapsed_ms,
     )
     return response
 
@@ -198,14 +219,17 @@ async def timing_middleware(request: Request, call_next):
 class GenerateRequest(BaseModel):
     prompt: str
 
+
 class GenerateResponse(BaseModel):
     session_id: str
+
 
 class ClarifyResponse(BaseModel):
     status: str
 
 
 # ── Routes ────────────────────────────────────────────────────────────────────
+
 
 @app.get("/integrations")
 async def get_integrations():
@@ -220,6 +244,7 @@ async def get_integrations():
         "implemented": [k for k, v in REGISTRY.items() if not v.is_stub],
         "stubbed": [k for k, v in REGISTRY.items() if v.is_stub],
     }
+
 
 @app.get("/health")
 async def health():
@@ -245,13 +270,30 @@ async def generate(req: GenerateRequest):
 
     logger.info(
         "[generate] New session created: %s prompt_length=%d",
-        session_id, len(req.prompt),
+        session_id,
+        len(req.prompt),
     )
 
     # Fire-and-forget — pipeline runs in background
     asyncio.create_task(_run_pipeline_safe(session))
 
     return GenerateResponse(session_id=session_id)
+
+
+async def _emit(session: PipelineSession, event: str, data: dict) -> None:
+    """Helper to emit SSE events to the session queue."""
+    try:
+        event_payload = {
+            "event": event,
+            "session_id": session.session_id,
+            **data,
+        }
+        await session.sse_queue.put(event_payload)
+        logger.debug(
+            "[emit] Event '%s' queued for session %s", event, session.session_id
+        )
+    except Exception as exc:
+        logger.error("[emit] Failed to emit event '%s': %s", event, exc)
 
 
 async def _run_pipeline_safe(session: PipelineSession) -> None:
@@ -263,11 +305,13 @@ async def _run_pipeline_safe(session: PipelineSession) -> None:
             "[session:%s] Pipeline crashed: %s", session.session_id, exc, exc_info=True
         )
         try:
-            await session.sse_queue.put({
-                "event": "pipeline_failed",
-                "session_id": session.session_id,
-                "error": str(exc),
-            })
+            await session.sse_queue.put(
+                {
+                    "event": "pipeline_failed",
+                    "session_id": session.session_id,
+                    "error": str(exc),
+                }
+            )
             await session.sse_queue.put(None)  # close stream
         except Exception:
             pass
@@ -288,7 +332,8 @@ async def stream(session_id: str, request: Request):
         for buffered_event in session.event_buffer:
             logger.debug(
                 "[stream:%s] Replaying buffered event: %s",
-                session_id, buffered_event.get("event"),
+                session_id,
+                buffered_event.get("event"),
             )
             yield {
                 "event": buffered_event.get("event", "message"),
@@ -335,7 +380,8 @@ async def clarify(req: ClarifyRequest):
     session = await _get_session(req.session_id)
     logger.info(
         "[clarify] Received answers for session %s: %s",
-        req.session_id, req.answers,
+        req.session_id,
+        req.answers,
     )
     session.resume_hitl(answers=req.answers, chosen_option=req.chosen_option)
     return ClarifyResponse(status="resumed")
@@ -357,7 +403,6 @@ class ModifyResponse(BaseModel):
     message: str
 
 
-
 @app.post("/generate/{session_id}/repair", response_model=RepairResponse)
 async def manual_repair(session_id: str, req: RepairRequest):
     """
@@ -371,17 +416,27 @@ async def manual_repair(session_id: str, req: RepairRequest):
     if not session.validation_report:
         raise HTTPException(
             status_code=422,
-            detail="No validation report available. Run the pipeline first."
+            detail="No validation report available. Run the pipeline first.",
         )
 
     # Build a synthetic error from the hint and inject it into the repair loop
-    hint_error = {"layer": req.stage, "field": "manual", "description": req.error_hint or f"Manual repair triggered for stage: {req.stage}"}
+    hint_error = {
+        "layer": req.stage,
+        "field": "manual",
+        "description": req.error_hint
+        or f"Manual repair triggered for stage: {req.stage}",
+    }
     existing_errors = (session.validation_report or {}).get("errors", [])
     if req.error_hint:
         existing_errors = existing_errors + [hint_error]
         session.validation_report["errors"] = existing_errors
 
-    logger.info("[manual_repair] session=%s stage=%s hint=%r", session_id, req.stage, req.error_hint)
+    logger.info(
+        "[manual_repair] session=%s stage=%s hint=%r",
+        session_id,
+        req.stage,
+        req.error_hint,
+    )
 
     # Fire repair stage as a background task
     asyncio.create_task(_run_pipeline_safe(session))
@@ -391,7 +446,6 @@ async def manual_repair(session_id: str, req: RepairRequest):
         session_id=session_id,
         repair_attempt=session.repair_count + 1,
     )
-
 
 
 @app.post("/modify", response_model=ModifyResponse)
@@ -421,15 +475,23 @@ async def modify(req: ModifyRequest):
     session.queue_modification(req.modification.strip())
     logger.info(
         "[modify] Modification queued for session %s: %r",
-        req.session_id, req.modification[:80],
+        req.session_id,
+        req.modification[:80],
     )
 
     # Emit SSE immediately so the client sees acknowledgement
     import asyncio as _asyncio
-    _asyncio.create_task(_emit(session, "modification_queued", {
-        "modification": req.modification.strip(),
-        "applied_at_stage": "pending",
-    }))
+
+    _asyncio.create_task(
+        _emit(
+            session,
+            "modification_queued",
+            {
+                "modification": req.modification.strip(),
+                "applied_at_stage": "pending",
+            },
+        )
+    )
 
     return ModifyResponse(
         status="queued",
@@ -443,9 +505,7 @@ async def result(session_id: str):
     session = await _get_session(session_id)
 
     if session.runtime_report is None:
-        logger.warning(
-            "[result] Session %s pipeline not yet complete.", session_id
-        )
+        logger.warning("[result] Session %s pipeline not yet complete.", session_id)
         raise HTTPException(
             status_code=202,
             detail="Pipeline not yet complete. Poll /stream for progress.",
@@ -466,8 +526,14 @@ async def result(session_id: str):
         "validation_report": session.validation_report,
         "repair_report": session.repair_report,
         "runtime_report": session.runtime_report,
-        "workflow_stubs": [s.model_dump() if hasattr(s, "model_dump") else s for s in (getattr(session, "workflow_stubs", None) or [])],
-        "integration_hooks": [h.model_dump() if hasattr(h, "model_dump") else h for h in (getattr(session, "integration_hooks", None) or [])],
+        "workflow_stubs": [
+            s.model_dump() if hasattr(s, "model_dump") else s
+            for s in (getattr(session, "workflow_stubs", None) or [])
+        ],
+        "integration_hooks": [
+            h.model_dump() if hasattr(h, "model_dump") else h
+            for h in (getattr(session, "integration_hooks", None) or [])
+        ],
         "app_spec": getattr(session, "app_spec", None),
         "repair_log": getattr(session, "repair_log", []),
         "mermaid_diagrams": {
@@ -492,11 +558,12 @@ async def result(session_id: str):
             "estimated_cost_usd": round(session.total_tokens * 0.00000059, 6),
             "stage_costs_usd": getattr(session, "stage_costs", {}),
             "stage_models_used": getattr(session, "stage_models", {}),
-            "total_cost_usd": round(sum(getattr(session, "stage_costs", {}).values()), 6),
+            "total_cost_usd": round(
+                sum(getattr(session, "stage_costs", {}).values()), 6
+            ),
             "routing_config": routing_summary(),
         },
     }
-
 
 
 @app.get("/logs/{session_id}", response_class=PlainTextResponse)
@@ -525,9 +592,11 @@ async def logs(session_id: str):
 
 # ── Legacy crewai entry points (kept for `crewai run` compatibility) ──────────
 
+
 def run():
     """Run the crew directly (legacy crewai CLI entry point)."""
     from compiler.crew import ProtoFlowCrew
+
     logger.info("[run] Starting ProtoFlow crew via legacy entry point.")
     inputs = {"user_prompt": "Build a CRM with contacts, deals, and roles."}
     ProtoFlowCrew().crew().kickoff(inputs=inputs)
@@ -536,16 +605,21 @@ def run():
 def serve():
     """Start the FastAPI server with uvicorn."""
     import uvicorn
+
     host = os.getenv("HOST", "0.0.0.0")
     port = int(os.getenv("PORT", "8000"))
     log_level = os.getenv("LOG_LEVEL", "info").lower()
     logger.info("[serve] Starting uvicorn on %s:%d", host, port)
-    uvicorn.run("compiler.main:app", host=host, port=port, log_level=log_level, reload=True)
+    uvicorn.run(
+        "compiler.main:app", host=host, port=port, log_level=log_level, reload=True
+    )
 
 
 def train():
     import sys
+
     from compiler.crew import ProtoFlowCrew
+
     inputs = {"user_prompt": "Build a project management tool."}
     ProtoFlowCrew().crew().train(
         n_iterations=int(sys.argv[1]), filename=sys.argv[2], inputs=inputs
@@ -554,13 +628,17 @@ def train():
 
 def replay():
     import sys
+
     from compiler.crew import ProtoFlowCrew
+
     ProtoFlowCrew().crew().replay(task_id=sys.argv[1])
 
 
 def test():
     import sys
+
     from compiler.crew import ProtoFlowCrew
+
     inputs = {"user_prompt": "Build an e-commerce platform."}
     ProtoFlowCrew().crew().test(
         n_iterations=int(sys.argv[1]), eval_llm=sys.argv[2], inputs=inputs
@@ -568,12 +646,14 @@ def test():
 
 
 def run_with_trigger():
-    import sys
     import json as _json
+    import sys
+
     if len(sys.argv) < 2:
         raise Exception("No trigger payload provided.")
     payload = _json.loads(sys.argv[1])
     from compiler.crew import ProtoFlowCrew
+
     return ProtoFlowCrew().crew().kickoff(inputs={"crewai_trigger_payload": payload})
 
 

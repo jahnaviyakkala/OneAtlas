@@ -1,6 +1,6 @@
-import os
 import json
 import logging
+import os
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
@@ -8,7 +8,10 @@ logger = logging.getLogger("protoflow.eval.recorder")
 
 # Path to eval_results.json inside the eval directory
 EVAL_RESULTS_PATH = os.path.join(os.path.dirname(__file__), "eval_results.json")
-EVAL_LOGS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "backend", "logs", "eval"))
+EVAL_LOGS_DIR = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..", "..", "..", "backend", "logs", "eval")
+)
+
 
 def init_results_file():
     """Ensure eval_results.json exists and contains a valid JSON array."""
@@ -20,6 +23,7 @@ def init_results_file():
         except Exception as e:
             logger.error(f"Failed to initialize eval_results.json: {e}")
 
+
 def _count_correct_integrations(session) -> int:
     """
     Count how many requested integrations produced at least one valid workflow stub.
@@ -27,17 +31,21 @@ def _count_correct_integrations(session) -> int:
     appears in the session workflow_stubs list.
     """
     from compiler.integrations.registry import REGISTRY
+
     requested = (session.intent or {}).get("integrations", []) if session.intent else []
     if not requested:
         return 0
     stubs = getattr(session, "workflow_stubs", None) or []
     detected_ids = set()
     for stub in stubs:
-        iid = stub.integration_id if hasattr(stub, "integration_id") else stub.get("integration_id", "")
+        iid = (
+            stub.integration_id
+            if hasattr(stub, "integration_id")
+            else stub.get("integration_id", "")
+        )
         if iid:
             detected_ids.add(iid)
     return sum(1 for r in requested if r.lower().strip() in detected_ids)
-
 
 
 def record_auto_metrics(
@@ -46,7 +54,7 @@ def record_auto_metrics(
     category: str,
     difficulty: str,
     session: Any,  # PipelineSession
-    pipeline_completed: bool
+    pipeline_completed: bool,
 ) -> Dict[str, Any]:
     """
     Constructs the run result dict, appends it to eval_results.json,
@@ -89,7 +97,7 @@ def record_auto_metrics(
     # Populate stages completed and failed
     stages_completed = []
     stages_failed = []
-    
+
     # Analyze the event buffer to determine which stages completed and failed
     stage_statuses = {}
     for event in session.event_buffer:
@@ -138,23 +146,29 @@ def record_auto_metrics(
             "conflicts_count": conflicts_count,
             "confidence_scores": confidence_scores,
             "integrations_correctly_detected": _count_correct_integrations(session),
-            "workflow_stubs_generated": len(getattr(session, "workflow_stubs", None) or []),
-            "repair_strategies_used": list(set(
-                entry.get("strategy", "UNKNOWN")
-                for entry in (getattr(session, "repair_log", None) or [])
-                if isinstance(entry, dict)
-            )),
+            "workflow_stubs_generated": len(
+                getattr(session, "workflow_stubs", None) or []
+            ),
+            "repair_strategies_used": list(
+                set(
+                    entry.get("strategy", "UNKNOWN")
+                    for entry in (getattr(session, "repair_log", None) or [])
+                    if isinstance(entry, dict)
+                )
+            ),
             "repair_log": getattr(session, "repair_log", []),
-            "repair_strategies_used": list(set(
-                entry.get("strategy", "UNKNOWN")
-                for entry in (getattr(session, "repair_log", None) or [])
-                if isinstance(entry, dict)
-            )),
-            "repair_log": getattr(session, "repair_log", [])
+            "repair_strategies_used": list(
+                set(
+                    entry.get("strategy", "UNKNOWN")
+                    for entry in (getattr(session, "repair_log", None) or [])
+                    if isinstance(entry, dict)
+                )
+            ),
+            "repair_log": getattr(session, "repair_log", []),
         },
         "human_judgment": None,
         "human_notes": None,
-        "failure_category": None
+        "failure_category": None,
     }
 
     # Append to eval_results.json
@@ -163,12 +177,14 @@ def record_auto_metrics(
         if os.path.exists(EVAL_RESULTS_PATH):
             with open(EVAL_RESULTS_PATH, "r", encoding="utf-8") as f:
                 results = json.load(f)
-        
+
         results.append(run_result)
-        
+
         with open(EVAL_RESULTS_PATH, "w", encoding="utf-8") as f:
             json.dump(results, f, indent=2)
-        logger.info(f"Recorded auto metrics for session {session_id} to eval_results.json")
+        logger.info(
+            f"Recorded auto metrics for session {session_id} to eval_results.json"
+        )
     except Exception as e:
         logger.error(f"Failed to write run result to eval_results.json: {e}")
 
@@ -176,12 +192,14 @@ def record_auto_metrics(
     try:
         os.makedirs(EVAL_LOGS_DIR, exist_ok=True)
         log_path = os.path.join(EVAL_LOGS_DIR, f"eval_{session_id}.md")
-        
+
         log_entries = log_output.get("log_entries", [])
         formatted_entries = ""
         for entry in log_entries:
             if isinstance(entry, dict):
-                formatted_entries += f"- **{entry.get('stage', 'Log')}:** {entry.get('message', '')}\n"
+                formatted_entries += (
+                    f"- **{entry.get('stage', 'Log')}:** {entry.get('message', '')}\n"
+                )
             else:
                 formatted_entries += f"- {entry}\n"
 
@@ -233,7 +251,7 @@ def update_human_judgment(
     session_id: str,
     human_judgment: str,
     human_notes: Optional[str],
-    failure_category: Optional[str]
+    failure_category: Optional[str],
 ) -> bool:
     """
     Updates an existing run result in eval_results.json with human judgment details.
@@ -246,7 +264,7 @@ def update_human_judgment(
     try:
         with open(EVAL_RESULTS_PATH, "r", encoding="utf-8") as f:
             results = json.load(f)
-        
+
         updated = False
         # Loop backwards to update the latest run for this session_id if multiple exist
         for run in reversed(results):
@@ -256,14 +274,16 @@ def update_human_judgment(
                 run["failure_category"] = failure_category
                 updated = True
                 break
-        
+
         if updated:
             with open(EVAL_RESULTS_PATH, "w", encoding="utf-8") as f:
                 json.dump(results, f, indent=2)
             logger.info(f"Updated human judgment for session {session_id}")
             return True
         else:
-            logger.warning(f"Session ID {session_id} not found in eval results for updating judgment.")
+            logger.warning(
+                f"Session ID {session_id} not found in eval results for updating judgment."
+            )
             return False
     except Exception as e:
         logger.error(f"Failed to update human judgment in eval_results.json: {e}")

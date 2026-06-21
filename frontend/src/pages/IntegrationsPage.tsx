@@ -1,15 +1,31 @@
 import { useEffect, useState } from "react";
 import { getIntegrations } from "../api/client";
 
+interface IntegrationAction {
+  id: string;
+}
+
+interface Integration {
+  id: string;
+  display_name: string;
+  is_stub: boolean;
+  description: string;
+  actions?: IntegrationAction[];
+}
+
+interface IntegrationRegistryResponse {
+  integrations?: Integration[];
+}
+
 export default function IntegrationsPage() {
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<IntegrationRegistryResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
     getIntegrations()
       .then(res => {
-        setData(res);
+        setData(res as unknown as IntegrationRegistryResponse);
         setLoading(false);
       })
       .catch(err => {
@@ -31,7 +47,7 @@ export default function IntegrationsPage() {
         
         {data && (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {data.integrations?.map((integ: any) => (
+            {data.integrations?.map((integ: Integration) => (
               <div key={integ.id} className="card p-6 flex flex-col hover:border-accent-500 transition-colors">
                 <div className="flex items-center justify-between mb-3">
                   <h2 className="text-xl font-bold text-white">{integ.display_name}</h2>
@@ -42,7 +58,7 @@ export default function IntegrationsPage() {
                 <div>
                   <div className="section-label mb-2">Available Actions</div>
                   <div className="flex flex-wrap gap-2">
-                    {integ.actions?.map((a: any) => (
+                    {integ.actions?.map((a: IntegrationAction) => (
                       <span key={a.id} className="text-xs font-mono bg-ink-800 text-ink-200 px-2 py-1 rounded">
                         {a.id}
                       </span>

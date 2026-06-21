@@ -88,9 +88,7 @@ class LLMResponseCache:
         age = time.monotonic() - timestamp
 
         if age > self._ttl:
-            logger.debug(
-                "[llm_cache] EXPIRED entry (age=%.1fs). model=%s.", age, model
-            )
+            logger.debug("[llm_cache] EXPIRED entry (age=%.1fs). model=%s.", age, model)
             del self._cache[key]
             self._misses += 1
             return None
@@ -100,7 +98,9 @@ class LLMResponseCache:
         self._hits += 1
         logger.debug(
             "[llm_cache] HIT. model=%s. age=%.1fs. Total hits=%d.",
-            model, age, self._hits,
+            model,
+            age,
+            self._hits,
         )
         return response
 
@@ -118,13 +118,16 @@ class LLMResponseCache:
         if len(self._cache) >= self._max_size:
             evicted_key, _ = self._cache.popitem(last=False)
             logger.debug(
-                "[llm_cache] Evicted oldest entry (cache full). key=%s.", evicted_key[:16]
+                "[llm_cache] Evicted oldest entry (cache full). key=%s.",
+                evicted_key[:16],
             )
 
         self._cache[key] = (response, time.monotonic())
         logger.debug(
             "[llm_cache] Stored new entry. model=%s. Cache size=%d/%d.",
-            model, len(self._cache), self._max_size,
+            model,
+            len(self._cache),
+            self._max_size,
         )
 
     def invalidate(self, model: str, prompt: str) -> bool:
