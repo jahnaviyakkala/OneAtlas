@@ -153,5 +153,7 @@ Contributions are welcome! Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for g
 - [Changelog](./CHANGELOG.md) - Project version history
 
 ---
+<img width="2760" height="5680" alt="software_evolution_pipeline_flowchart" src="https://github.com/user-attachments/assets/09d077e8-40ad-44f4-a16b-79daf842139c" />
+<img width="777" height="1600" alt="WhatsApp Image 2026-06-28 at 10 00 13 PM" src="https://github.com/user-attachments/assets/31b1a658-1f80-4817-b352-fdb9dd7e4220" />
 
 **Built with ❤️ for reliable AI-native software generation.**
